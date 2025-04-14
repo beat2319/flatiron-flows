@@ -11,4 +11,4 @@ RUN npm install
 
 COPY . .
 
-CMD ["node", "log.js"]
+CMD ["sleep", "infinity"]
