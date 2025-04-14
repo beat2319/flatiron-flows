@@ -1,7 +1,9 @@
-import sqlite3 from 'sqlite3';
-import dotenv from 'dotenv';
-import fetch from 'node-fetch';
+const sqlite3 = require('sqlite3');
+const dotenv = require('dotenv');
 dotenv.config();
+
+//isues with sending webhook
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)); 
 
 const db = new sqlite3.Database('./bike_logs.db');
 
@@ -23,7 +25,7 @@ function runSummary() {
            ROUND(AVG(wind_speed), 1) AS avg_wind,
            ROUND(AVG(aqi), 1) AS avg_aqi
     FROM logs
-    WHERE DATE(timestamp) = DATE('now', 'localtime')
+    WHERE date = DATE('now', 'localtime')
   `;
 
   db.get(sql, async (err, row) => {
