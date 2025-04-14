@@ -1,0 +1,15 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# SQLite DB file
+*.db
+
+# Logs (if any)
+*.log
+
+# Mac & system junk
+.DS_Store
+Thumbs.db

@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  bikelogger:
+    build: .
+    image: flatiron_flows:latest
+    container_name: flatiron_flows
+    volumes:
+      - ./bike_logs.db:/app/bike_logs.db
+    env_file:
+      - .env
+    restart: unless-stopped
