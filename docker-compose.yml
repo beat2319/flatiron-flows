@@ -6,7 +6,7 @@ services:
     image: flatiron_flows:latest
     container_name: flatiron_flows
     volumes:
-      - ./bike_logs.db:/app/bike_logs.db
+      - ./data:/app/data
     env_file:
       - .env
     restart: unless-stopped
