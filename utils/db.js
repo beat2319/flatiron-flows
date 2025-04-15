@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 
 const path = require('path');
-const dbPath = path.join(__dirname, 'data', 'bike_logs.db');
+const dbPath = path.join(__dirname,'..', 'data', 'bike_logs.db');
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
@@ -18,7 +18,9 @@ db.serialize(() => {
         wind_speed REAL,
         aqi INTEGER,
         date TEXT,
-        time TEXT
+        time TEXT,
+        is_weekend INTEGER,
+        is_semeseter INTEGER
         )
     `);
 });
@@ -26,7 +28,12 @@ db.serialize(() => {
 function logToDatabase(dataArray) {
     return new Promise((resolve, reject) => {
         const stmt = db.prepare(`
-            INSERT INTO logs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO logs (
+                station_id, name, lat, lon,
+                bikes_available, docks_available,
+                temp, humidity, wind_speed, aqi,
+                date, time, is_weekend, is_semeseter
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
   
         dataArray.forEach(row => {
@@ -42,7 +49,9 @@ function logToDatabase(dataArray) {
                 row.wind_speed,
                 row.aqi,
                 row.date,
-                row.time
+                row.time,
+                row.is_weekend ? 1 : 0, 
+                row.is_semeseter ? 1 : 0 
             );
         });
   

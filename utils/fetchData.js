@@ -1,6 +1,6 @@
 // This allows the env variables to be used in the code
-// will have to run npm install dotenv on server
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
 const LAT = process.env.LAT;
 const LON = process.env.LON;
@@ -22,7 +22,7 @@ async function fetchJoinedStationData() {
         const aqiRes = await fetch(openweather_aqi_url);
         const weatherData = await weatherRes.json();
         const aqiData = await aqiRes.json();
-        
+
         const infoData = await infoRes.json();
         const statusData = await statusRes.json();
         const temp = weatherData.main.temp;
@@ -54,6 +54,9 @@ async function fetchJoinedStationData() {
             statusData.data.stations.forEach(status => {
             statusMap.set(status.station_id, status);
         });
+
+        // Gives the current date 
+        const now = new Date().toISOString();
         
         const cuJoinedStations = cuStationInfo.map(info => {
             const status = statusMap.get(info.station_id);
@@ -69,7 +72,9 @@ async function fetchJoinedStationData() {
               wind_speed,
               aqi,
               date,
-              time
+              time,
+              is_weekend: isWeekend(now),
+              is_semeseter: isSchoolSemeseter(now)
             };
         });
         // console.log(cuJoinedStations);
@@ -100,6 +105,33 @@ function getDateTimeParts() {
       date: `${yyyy}-${mm}-${dd}`,
       time
     };
+}
+
+function isWeekend(dateStr) {
+    const mstString = new Date(dateStr).toLocaleString("en-US", {
+      timeZone: "America/Denver"
+    });
+  
+    const mstDate = new Date(mstString);
+    const day = mstDate.getDay(); // 0 = Sunday, 6 = Saturday
+  
+    return day === 0 || day === 6;
+}
+
+function isSchoolSemeseter(dateStr) {
+    const mstString = new Date(dateStr).toLocaleString("en-US", {
+      timeZone: "America/Denver"
+    });
+    const mstDate = new Date(mstString);
+    const springStart = new Date(`${mstDate.getFullYear()}-01-10`);
+    const springEnd = new Date(`${mstDate.getFullYear()}-05-10`);
+    const fallStart = new Date(`${mstDate.getFullYear()}-08-20`);
+    const fallEnd = new Date(`${mstDate.getFullYear()}-12-20`);
+  
+    return (
+      (mstDate >= springStart && mstDate <= springEnd) ||
+      (mstDate >= fallStart && mstDate <= fallEnd)
+    );
 }
 
 module.exports = { fetchJoinedStationData };
