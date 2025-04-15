@@ -20,7 +20,7 @@ db.serialize(() => {
         date TEXT,
         time TEXT,
         is_weekend INTEGER,
-        is_semeseter INTEGER
+        is_semester INTEGER
         )
     `);
 });
@@ -32,7 +32,7 @@ function logToDatabase(dataArray) {
                 station_id, name, lat, lon,
                 bikes_available, docks_available,
                 temp, humidity, wind_speed, aqi,
-                date, time, is_weekend, is_semeseter
+                date, time, is_weekend, is_semester
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
   

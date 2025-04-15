@@ -74,7 +74,7 @@ async function fetchJoinedStationData() {
               date,
               time,
               is_weekend: isWeekend(now),
-              is_semeseter: isSchoolSemeseter(now)
+              is_semester: isSchoolSemester(now)
             };
         });
         // console.log(cuJoinedStations);
@@ -118,7 +118,7 @@ function isWeekend(dateStr) {
     return day === 0 || day === 6;
 }
 
-function isSchoolSemeseter(dateStr) {
+function isSchoolSemester(dateStr) {
     const mstString = new Date(dateStr).toLocaleString("en-US", {
       timeZone: "America/Denver"
     });
