@@ -2,11 +2,11 @@
   "name": "flatiron-flows",
   "version": "1.0.0",
   "description": "This project logs bike station availability, weather, and AQI data every 15 minutes using Node.js and SQLite.",
-  "main": "log.js",
+  "main": "scripts/log.js",
   "scripts": {
-    "log": "node log.js",
-    "summary": "node summary.js",
-    "start": "node log.js"
+    "log": "node scripts/log.js",
+    "summary": "node scripts/summary.js",
+    "start": "node scripts/log.js"
   },
   "repository": {
     "type": "git",
