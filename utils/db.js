@@ -32,7 +32,7 @@ function logToDatabase(dataArray) {
                 station_id, name, lat, lon,
                 bikes_available, docks_available,
                 temp, humidity, wind_speed, aqi,
-                date, time, is_semester, is_weekend,
+                date, time, is_semester, is_weekend
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
   
