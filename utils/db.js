@@ -19,8 +19,8 @@ db.serialize(() => {
         aqi INTEGER,
         date TEXT,
         time TEXT,
-        is_weekend INTEGER,
-        is_semester INTEGER
+        is_semester INTEGER,
+        is_weekend INTEGER
         )
     `);
 });
@@ -32,7 +32,7 @@ function logToDatabase(dataArray) {
                 station_id, name, lat, lon,
                 bikes_available, docks_available,
                 temp, humidity, wind_speed, aqi,
-                date, time, is_weekend, is_semester
+                date, time, is_semester, is_weekend,
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
   
@@ -50,8 +50,8 @@ function logToDatabase(dataArray) {
                 row.aqi,
                 row.date,
                 row.time,
-                row.is_weekend ? 1 : 0, 
-                row.is_semester ? 1 : 0 
+                row.is_semester ? 1 : 0,
+                row.is_weekend ? 1 : 0
             );
         });
   

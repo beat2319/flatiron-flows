@@ -73,8 +73,8 @@ async function fetchJoinedStationData() {
               aqi,
               date,
               time,
-              is_weekend: isWeekend(now),
-              is_semester: isSchoolSemester(now)
+              is_semester: isSchoolSemester(now),
+              is_weekend: isWeekend(now)
             };
         });
         // console.log(cuJoinedStations);
