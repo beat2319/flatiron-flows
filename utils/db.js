@@ -51,7 +51,7 @@ function logToDatabase(dataArray) {
                 row.date,
                 row.time,
                 row.is_weekend ? 1 : 0, 
-                row.is_semeseter ? 1 : 0 
+                row.is_semester ? 1 : 0 
             );
         });
   
