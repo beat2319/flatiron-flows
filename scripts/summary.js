@@ -1,12 +1,12 @@
 const path = require('path');
 const sqlite3 = require('sqlite3');
 const dotenv = require('dotenv');
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 //isues with sending webhook
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)); 
 
-const db = new sqlite3.Database(path.join(__dirname, 'data', 'bike_logs.db'));
+const db = new sqlite3.Database(path.join(__dirname, '..', 'data', 'bike_logs.db'));
 
 function sendDiscord(message) {
   return fetch(process.env.DISCORD_WEBHOOK, {
