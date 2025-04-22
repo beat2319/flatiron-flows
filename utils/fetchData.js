@@ -29,6 +29,11 @@ async function fetchJoinedStationData() {
         const humidity = weatherData.main.humidity;
         const wind_speed = weatherData.wind.speed;
         const aqi = aqiData.list[0].main.aqi;
+
+        const rain_1h = weatherData.rain?.['1h'] ?? 0;
+        const snow_1h = weatherData.snow?.['1h'] ?? 0;
+        const precipitation = rain_1h + snow_1h;
+
         const { date, time } = getDateTimeParts();
         
         const cuStationNames = new Set([
@@ -71,6 +76,7 @@ async function fetchJoinedStationData() {
               humidity,
               wind_speed,
               aqi,
+              precipitation,
               date,
               time,
               is_semester: isSchoolSemester(now),

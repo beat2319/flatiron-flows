@@ -17,6 +17,7 @@ db.serialize(() => {
         humidity REAL,
         wind_speed REAL,
         aqi INTEGER,
+        precipitation REAL,
         date TEXT,
         time TEXT,
         is_semester INTEGER,
@@ -31,9 +32,10 @@ function logToDatabase(dataArray) {
             INSERT INTO logs (
                 station_id, name, lat, lon,
                 bikes_available, docks_available,
-                temp, humidity, wind_speed, aqi,
-                date, time, is_semester, is_weekend
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                temp, humidity, wind_speed, aqi, 
+                precipitation, date, time, 
+                is_semester, is_weekend
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
   
         dataArray.forEach(row => {
@@ -48,6 +50,7 @@ function logToDatabase(dataArray) {
                 row.humidity,
                 row.wind_speed,
                 row.aqi,
+                row.precipitation,
                 row.date,
                 row.time,
                 row.is_semester ? 1 : 0,
