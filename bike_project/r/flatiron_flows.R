@@ -1,0 +1,259 @@
+# --- Load Necessary Libraries ---
+# Ensure pacman is installed, otherwise install it
+if (!require("pacman", quietly = TRUE)) install.packages("pacman")
+# Load required packages
+pacman::p_load(ssh, dplyr, lubridate, sqldf, anytime) # RSQLite needed for some backend operations
+
+# --- Configuration ---
+ssh_user          <- "benatk04"
+ssh_host          <- "beatcloud"
+remote_db_path    <- "/mnt/bencloud-data/flatiron-flows/data/bike_logs.db" 
+local_db_path     <- "/Users/benatkinson/Library/Mobile Documents/com~apple~CloudDocs/School/3rd_Year/Semester_1/GEOG_3023/flatiron-flows/data/bike_logs.db" 
+
+# session <- NULL # Initialize session variable
+# print(paste("Attempting SSH connection to", ssh_user, "@", ssh_host))
+# tryCatch({
+#   session <- ssh_connect(paste0(ssh_user, "@", ssh_host))
+#   print("SSH connection successful.")
+# }, error = function(e) {
+#   stop(paste("SSH connection failed:", e$message))
+# })
+# 
+# # Stop if session failed
+# if (is.null(session)) {
+#   stop("Cannot proceed without SSH session.")
+# }
+# 
+# # --- Download Database File via SCP ---
+# print(paste("Attempting to download", remote_db_path, "to", local_db_path))
+# tryCatch({
+#   # Download the file from the remote server to the local path
+#   scp_download(session, files = remote_db_path, to = ".") # Downloads to current working dir
+#   # Rename if necessary (scp_download saves with original name by default)
+#   if (basename(remote_db_path) != local_db_path) {
+#     file.rename(basename(remote_db_path), local_db_path)
+#   }
+#   print("Database file downloaded successfully.")
+# }, error = function(e) {
+#   ssh_disconnect(session) # Disconnect before stopping
+#   stop(paste("SCP download failed:", e$message))
+# })
+# 
+# # --- Disconnect SSH Session ---
+# ssh_disconnect(session)
+# print("SSH session disconnected.")
+
+# --- Load Data from LOCAL Copy ---
+# Now use the LOCAL path with sqldf
+print(paste("Loading data from local copy:", local_db_path))
+data <- tryCatch({
+  sqldf(paste('SELECT * FROM "logs"'), dbname = local_db_path) # Use local_db_path here
+}, error = function(e) {
+  stop(paste("Error reading from local database:", local_db_path, "\nOriginal error:", e$message))
+  NULL
+})
+
+# Stop script if data loading failed
+if (is.null(data) || nrow(data) == 0) {
+  stop("Failed to load data or data is empty. Exiting script.")
+} else {
+  print(paste("Successfully loaded", nrow(data), "rows from local copy:", local_db_path))
+}
+
+# Perform feature engineering steps using dplyr
+message("Running feature engineering...")
+data <- data %>%
+  # Create a 'weekday' column from the 'date' column
+  mutate(weekday = strftime(date, "%A")) %>%
+  
+  # Create a 'time_hhmm' column (HH:MM format) from the 'time' column
+  mutate(
+    # Attempt to parse time using hms. Result is a Period object or NA.
+    time_obj = lubridate::hms(time, quiet = TRUE),
+    
+    # Format to HH:MM manually using hour(), minute(), and sprintf()
+    # We use if_else to handle potential NAs from the hms parsing step
+    time_hhmm = if_else(
+      is.na(time_obj),              # Condition: Check if parsing failed (time_obj is NA)
+      NA_character_,                # Value if TRUE: Assign NA (as character)
+      sprintf("%02d:%02d", hour(time_obj), minute(time_obj)) # Value if FALSE: Extract H/M and format
+    )
+  ) %>%
+  # Create 'time_hhmm' ONLY if time_obj is valid, otherwise NA
+  select(-time_obj) %>%
+  # Remove the intermediate parsed time column
+  
+  # Create 'time_category' and 'is_release_period' based on time, day, and semester status
+  mutate(
+    # Create a logical flag indicating if it's during the semester (assumes is_semester is 1/0/NA)
+    is_semester_flag = (!is.na(is_semester) & is_semester == 1),
+    
+    # Categorize time periods based on day, time, and semester status
+    time_category = case_when(
+      is.na(time_hhmm) | is.na(weekday) ~ "UnknownTime", # Handle missing time/day
+      # Semester prime times
+      is_semester_flag & weekday %in% c("Monday", "Wednesday", "Friday") & time_hhmm >= "10:10" & time_hhmm <= "15:20" ~ "Prime_MWF",
+      is_semester_flag & weekday %in% c("Tuesday", "Thursday")            & time_hhmm >= "09:30" & time_hhmm <= "15:15" ~ "Prime_TT",
+      # Semester non-prime times
+      is_semester_flag & weekday %in% c("Monday", "Wednesday", "Friday") & ((time_hhmm >= "08:00" & time_hhmm <= "09:55") | (time_hhmm >= "15:35" & time_hhmm <= "22:00")) ~ "NonPrime_MWF",
+      is_semester_flag & weekday %in% c("Tuesday", "Thursday")            & ((time_hhmm >= "08:00" & time_hhmm <= "09:15") | (time_hhmm >= "15:30" & time_hhmm <= "22:00")) ~ "NonPrime_TT",
+      # Weekend (regardless of semester)
+      weekday %in% c("Saturday", "Sunday") ~ "Weekend",
+      # Weekday outside of semester
+      !is_semester_flag & weekday %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday") ~ "Weekday_OutsideSemester",
+      # Default category for any other times
+      TRUE ~ "OtherTime"
+    ),
+    
+    # Create a flag (0/1) indicating class release periods (only during semester)
+    is_release_period = case_when(
+      # Not applicable if outside semester or missing time/day
+      !is_semester_flag | is.na(time_hhmm) | is.na(weekday) ~ 0L,
+      # MWF release times
+      weekday %in% c("Monday", "Wednesday", "Friday") &
+        ( (time_hhmm >= "08:50" & time_hhmm < "09:05") | (time_hhmm >= "09:55" & time_hhmm < "10:10") | (time_hhmm >= "11:00" & time_hhmm < "11:15") | (time_hhmm >= "12:05" & time_hhmm < "12:20") | (time_hhmm >= "13:10" & time_hhmm < "13:25") | (time_hhmm >= "14:15" & time_hhmm < "14:30") | (time_hhmm >= "15:20" & time_hhmm < "15:35") ) ~ 1L,
+      # TTh release times
+      weekday %in% c("Tuesday", "Thursday") &
+        ( (time_hhmm >= "09:15" & time_hhmm < "09:30") | (time_hhmm >= "10:45" & time_hhmm < "11:00") | (time_hhmm >= "12:15" & time_hhmm < "12:30") | (time_hhmm >= "13:45" & time_hhmm < "14:00") | (time_hhmm >= "15:15" & time_hhmm < "15:30") ) ~ 1L,
+      # Default to 0 (not a release period)
+      TRUE ~ 0L
+    ),
+    # Convert time_category to a factor for potential modeling use
+    time_category = factor(time_category)
+  ) %>%
+  # Remove the temporary semester flag column
+  select(-is_semester_flag)
+
+# Create a dummy variable (0/1) indicating if there was any precipitation
+message("Creating precipitation dummy...")
+# Assumes 'precipitation' column exists
+data <- data %>%
+  mutate(
+    # Create 'has_precipitation': 1 if precipitation > 0, 0 if <= 0, NA if precipitation is NA
+    has_precipitation = case_when(
+      is.na(precipitation) ~ NA_integer_, # Preserve NAs
+      precipitation > 0    ~ 1L,          # Indicate precipitation occurred
+      precipitation <= 0   ~ 0L,          # Indicate no precipitation
+      TRUE                 ~ NA_integer_  # Fallback for unexpected non-numeric cases
+    )
+  )
+
+station_1855 <- subset(data, station_id == "bcycle_boulder_1855") #done
+station_1872 <- subset(data, station_id == "bcycle_boulder_1872") #done
+station_2132 <- subset(data, station_id == "bcycle_boulder_2132")
+station_2144 <- subset(data, station_id == "bcycle_boulder_2144")
+station_2767 <- subset(data, station_id == "bcycle_boulder_2767")
+station_3318 <- subset(data, station_id == "bcycle_boulder_3318")
+station_3894 <- subset(data, station_id == "bcycle_boulder_3894")
+station_4657 <- subset(data, station_id == "bcycle_boulder_4657")
+station_7314 <- subset(data, station_id == "bcycle_boulder_7314")
+station_7393 <- subset(data, station_id == "bcycle_boulder_7393")
+station_7785 <- subset(data, station_id == "bcycle_boulder_7785")
+
+model_1855 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_1855) 
+summary(model_1855)
+par(mfrow=c(2,2))
+plot(model_1855)
+
+model_1872 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_1872) 
+summary(model_1872)
+par(mfrow=c(2,2))
+plot(model_1872)
+
+model_1872 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_1872) 
+summary(model_1872)
+par(mfrow=c(2,2))
+plot(model_1872)
+
+model_2132 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_2132) 
+summary(model_2132)
+par(mfrow=c(2,2))
+plot(model_2132)
+
+model_2144 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_2144) 
+summary(model_2144)
+par(mfrow=c(2,2))
+plot(model_2144) 
+
+model_2767 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_2767) 
+summary(model_2767)
+par(mfrow=c(2,2))
+plot(model_2767) 
+
+model_3318 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_3318) 
+summary(model_3318)
+par(mfrow=c(2,2))
+plot(model_3318) 
+
+model_3894 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_3894) 
+summary(model_3894)
+par(mfrow=c(2,2))
+plot(model_3894) 
+
+model_4657 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_4657) 
+summary(model_4657)
+par(mfrow=c(2,2))
+plot(model_4657) 
+
+model_7314 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_7314) 
+summary(model_7314)
+par(mfrow=c(2,2))
+plot(model_7314) 
+
+model_7393 <- lm(log(bikes_available + 1) ~ time_category +
+                factor(is_release_period) +
+                factor(has_precipitation) +
+                temp + humidity + wind_speed + aqi,
+                data = station_7393) 
+summary(model_7393)
+par(mfrow=c(2,2))
+plot(model_7393) 
+
+model_7785 <- lm(log(bikes_available + 1) ~ time_category +
+                  factor(is_release_period) +
+                  factor(has_precipitation) +
+                  temp + humidity + wind_speed + aqi,
+                  data = station_7785) 
+summary(model_7785)
+par(mfrow=c(2,2))
+plot(model_7785) 
