@@ -53,15 +53,15 @@ tt_days = np.array(['Tuesday', 'Thursday'], dtype=object)
 # have the given array values 
 
 def isRelease(x,y):
-    for i in range(0,len(mwf_days)):
+    for i in range(len(mwf_days)):
         if x == mwf_days[i]:
-            for j in range(0,len(mwf_time)):
+            for j in range(len(mwf_time)):
                 if y >= mwf_time[j][0] and y <= mwf_time[j][1]:
                     return True
-    for i in range(0,len(tt_days)):
-        if x == tt_days[i]:
-            for j in range(0,len(tt_time)):
-                if y >= tt_time[j][0] and y <= tt_time[j][1]:
+    for k in range(len(tt_days)):
+        if x == tt_days[k]:
+            for l in range(len(tt_time)):
+                if y >= tt_time[l][0] and y <= tt_time[l][1]:
                     return True
     else:
         return False
@@ -69,4 +69,6 @@ def isRelease(x,y):
 # using pandas apply and lambda to apply specific function to the dataframe         
 df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
-print(df.query('release_period == True').head(50))
+print(df.query('release_period == False'))
+print(df.query('release_period == True'))
+print(df)
