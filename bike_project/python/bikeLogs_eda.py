@@ -93,8 +93,10 @@ days = np.array(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], dtype=
 # ]
 
 conditions = [
-    (df['day_of_week'] == days[0]) & (
-        ((df['time'] >= mwf_time[0][0]) & (df['time'] <= mwf_time[0][1])) | 
+    (((df['day_of_week'] == days[0]) | 
+      (df['day_of_week'] == days[2]) | 
+      (df['day_of_week'] == days[4])) & 
+       (((df['time'] >= mwf_time[0][0]) & (df['time'] <= mwf_time[0][1])) | 
         ((df['time'] >= mwf_time[1][0]) & (df['time'] <= mwf_time[1][1])) | 
         ((df['time'] >= mwf_time[2][0]) & (df['time'] <= mwf_time[2][1])) |
         ((df['time'] >= mwf_time[3][0]) & (df['time'] <= mwf_time[3][1])) |
@@ -103,16 +105,25 @@ conditions = [
         ((df['time'] >= mwf_time[6][0]) & (df['time'] <= mwf_time[6][1])) |
         ((df['time'] >= mwf_time[7][0]) & (df['time'] <= mwf_time[7][1])) |
         ((df['time'] >= mwf_time[8][0]) & (df['time'] <= mwf_time[8][1])) |
-        ((df['time'] >= mwf_time[9][0]) & (df['time'] <= mwf_time[9][1]))),
+        ((df['time'] >= mwf_time[9][0]) & (df['time'] <= mwf_time[9][1])))) |
+    (((df['day_of_week'] == days[1]) | 
+      (df['day_of_week'] == days[3])) & 
+       (((df['time'] >= tt_time[0][0]) & (df['time'] <= tt_time[0][1])) | 
+        ((df['time'] >= tt_time[1][0]) & (df['time'] <= tt_time[1][1])) | 
+        ((df['time'] >= tt_time[2][0]) & (df['time'] <= tt_time[2][1])) |
+        ((df['time'] >= tt_time[3][0]) & (df['time'] <= tt_time[3][1])) |
+        ((df['time'] >= tt_time[4][0]) & (df['time'] <= tt_time[4][1])) |
+        ((df['time'] >= tt_time[5][0]) & (df['time'] <= tt_time[5][1])) |
+        ((df['time'] >= tt_time[6][0]) & (df['time'] <= tt_time[6][1])))),
 ]
 choices = [
-    'true'
+    True
 ]
 
-df['release_period'] = np.select(conditions, choices, default='false')
+df['release_period'] = np.select(conditions, choices, default=False)
 
 # using pandas apply and lambda to apply specific function to the dataframe         
 #df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
-print(df.query('release_period in ["true"]'))
-print(df)
+print(df.query('release_period == True').head(50))
+#print(df)
