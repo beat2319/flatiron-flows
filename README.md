@@ -1,23 +1,16 @@
-## flatiron-flows ##
+## flatiron-flows
+
 # CU Boulder Bike Usage Logger
 
-This project logs bike station availability, weather, and AQI data every 15 minutes using Node.js and SQLite.
+## Guides
 
-## Features
-- B-cycle GBFS feed integration
-- OpenWeatherMap + AQI logging
-- SQLite time-series database
-- Dockerized + cron-compatible
-- GIS feature support (e.g. cafe proximity)
+# SQL
 
-## Setup
+https://medium.com/@pratik.941/sql-tutorial-a-guide-to-sql-queries-b6a7cd7da8b6
+https://stackoverflow.com/questions/15875900/return-all-values-including-null
 
-1. Copy `.env.example` → `.env` and fill in your API key
-2. Run: `docker compose up --build`
-3. Add cron job to run: `docker exec bcycle_logger node log.js`
+# python
 
-## File Overview
-- `fetchData.js` — joins live data
-- `db.js` — database schema and logging
-- `log.js` — entry point for timed logging
-- `Dockerfile` — container setup
+https://likegeeks.com/export-sql-to-csv-python-pandas/
+https://geekpython.medium.com/3-essential-pandas-methods-to-handle-missing-values-66c1ef54a3a5
+https://medium.com/@antoniolui/applying-custom-functions-in-pandas-e30bdc1f4e76
