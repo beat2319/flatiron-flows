@@ -23,7 +23,7 @@ df['is_semester'] = df['is_semester'].astype(int)
 df['is_weekend'] = df['is_weekend'].astype(int)
 df['day_of_week'] = df['date'].dt.day_name()
 
-# 2d and 1d arrays to organize specific times and days
+# 2D and 1D arrays to organize specific times and days
 mwf_time =np.array([['08:50:00', '08:55:00'],
                     ['09:55:00', '10:00:00'],
                     ['11:00:00', '11:05:00'],
@@ -44,31 +44,14 @@ tt_time = np.array([['09:15:00', '09:20:00'],
                     ['16:45:00', '16:50:00'],
                     ['18:15:00', '18:20:00']], dtype=object)
 
-days = np.array(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], dtype=object)
+weekdays = np.array(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], dtype=object)
 
-
-# function that takes in the dataframe columns time and day 
-# of week then loops through arrays to see if the columns 
-# have the given array values 
-
-# def isRelease(x,y):
-#     for i in range(len(mwf_days)):
-#         if x == mwf_days[i]:
-#             for j in range(len(mwf_time)):
-#                 if y >= mwf_time[j][0] and y <= mwf_time[j][1]:
-#                     return True
-#     for k in range(len(tt_days)):
-#         if x == tt_days[k]:
-#             for l in range(len(tt_time)):
-#                 if y >= tt_time[l][0] and y <= tt_time[l][1]:
-#                     return True
-#     else:
-#         return False
-
+# using numpy.select to statically "loop" through the day_of_week and time dataframes 
+# columns and compare with mwf_time, tt_time, and weekdays respecively
 conditions = [
-    (((df['day_of_week'] == days[0]) | 
-      (df['day_of_week'] == days[2]) | 
-      (df['day_of_week'] == days[4])) & 
+    (((df['day_of_week'] == weekdays[0]) | 
+      (df['day_of_week'] == weekdays[2]) | 
+      (df['day_of_week'] == weekdays[4])) & 
        (((df['time'] >= mwf_time[0][0]) & (df['time'] <= mwf_time[0][1])) | 
         ((df['time'] >= mwf_time[1][0]) & (df['time'] <= mwf_time[1][1])) | 
         ((df['time'] >= mwf_time[2][0]) & (df['time'] <= mwf_time[2][1])) |
@@ -79,8 +62,8 @@ conditions = [
         ((df['time'] >= mwf_time[7][0]) & (df['time'] <= mwf_time[7][1])) |
         ((df['time'] >= mwf_time[8][0]) & (df['time'] <= mwf_time[8][1])) |
         ((df['time'] >= mwf_time[9][0]) & (df['time'] <= mwf_time[9][1])))) |
-    (((df['day_of_week'] == days[1]) | 
-      (df['day_of_week'] == days[3])) & 
+    (((df['day_of_week'] == weekdays[1]) | 
+      (df['day_of_week'] == weekdays[3])) & 
        (((df['time'] >= tt_time[0][0]) & (df['time'] <= tt_time[0][1])) | 
         ((df['time'] >= tt_time[1][0]) & (df['time'] <= tt_time[1][1])) | 
         ((df['time'] >= tt_time[2][0]) & (df['time'] <= tt_time[2][1])) |
@@ -98,5 +81,7 @@ df['release_period'] = np.select(conditions, choices, default=False)
 # using pandas apply and lambda to apply specific function to the dataframe         
 #df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
+print(list(df))
+print(df.query('release_period == True').head(50))
 print(df.query('release_period == True').tail(50))
 #print(df)
