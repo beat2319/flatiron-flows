@@ -16,3 +16,10 @@ Thumbs.db
 
 # .json
 *.json
+
+# virtual enviorments
+venv/
+.conda/
+
+# cache
+cache/
