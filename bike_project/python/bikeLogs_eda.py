@@ -82,6 +82,6 @@ df['release_period'] = np.select(conditions, choices, default=False)
 #df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
 print(list(df))
-print(df.query('release_period == True').head(50))
-print(df.query('release_period == True').tail(50))
+#print(df.query('release_period == True').head(50))
+#print(df.query('release_period == True').tail(50))
 #print(df)
