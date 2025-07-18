@@ -1,6 +1,6 @@
 # flatiron-flows
 
-## CU Boulder Bike Usage Logger
+CU Boulder Bike Usage Logger
 
 ## Guides
 
