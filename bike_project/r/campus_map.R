@@ -1,7 +1,7 @@
 # Install leaflet if you haven't already
 # install.packages("leaflet")
 library(sqldf)
-db_path <- "/Users/benatkinson/Library/Mobile Documents/com~apple~CloudDocs/School/3rd_Year/Semester_1/GEOG_3023/flatiron-flows/data/bike_logs.db"
+db_path <- "/Users/benatkinson/Library/Mobile Documents/com~apple~CloudDocs/projects/flatiron-flows/data/bike_logs.db"
 data <- sqldf(paste('SELECT
     station_id,
     MIN(name) AS name, 
