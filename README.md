@@ -18,3 +18,8 @@ https://medium.com/@antoniolui/applying-custom-functions-in-pandas-e30bdc1f4e76
 ### JSON
 
 https://pythonspeed.com/articles/faster-python-json-parsing/
+
+## API's
+
+https://api.weather.gov/
+https://gbfs.bcycle.com
