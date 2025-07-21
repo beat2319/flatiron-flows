@@ -79,7 +79,7 @@ choices = [
 df['release_period'] = np.select(conditions, choices, default=False)
 
 # using pandas apply and lambda to apply specific function to the dataframe         
-#df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
+# df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
 print(list(df))
 #print(df.query('release_period == True').head(50))
