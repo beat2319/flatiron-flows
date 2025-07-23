@@ -4,20 +4,10 @@ from bs4 import BeautifulSoup
 import pandas as pd
 
 # boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
-cu_campus_weather = "https://sundowner.colorado.edu/weather/atoc1/"
-#
-bcycle_url = "https://gbfs.bcycle.com"
+weather_url = "https://sundowner.colorado.edu/weather/atoc1/"
+bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
-def get_bcycle_json(name):
-    url = f"{bcycle_url}/bcycle_boulder/{name}"
-    response = requests.get(url)
-
-    if response.status_code == 200:
-        bcycle_data = response.json()
-        return bcycle_data
-    else:
-        print(f"Failed to retrive data {response.status_code}")
-
+main_df = pd.DataFrame(columns=['station_id', 'name', 'lon', 'lat', 'lon', 'num_docks_available', 'num_bikes_available', 'temp', 'wind_speed', 'total_rain'])
 
 request_names = [
     'station_information',
@@ -43,6 +33,15 @@ status_columns = [
 #         for j in range(len(status_columns)):
 #             print(station_array[i], "==", bcycle_json["data"]["stations"][station_array[i]][status_columns[j]])
         # print("index:", station_array[i], bcycle_info["data"]["stations"][station_array[i]]["name"])
+def get_bcycle_json(name):
+    url = f"{bcycle_url}{name}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        bcycle_data = response.json()
+        return bcycle_data
+    else:
+        print(f"Failed to retrive data {response.status_code}")
 
 def parse_json():
     for i in range(len(request_names)):
@@ -59,19 +58,34 @@ def parse_json():
 weather_array = np.array([[0,5,8],
                          ['temp', 'wind speed', 'total rain']], dtype=object)
 
-def scrape():
-    url = cu_campus_weather
-    response = requests.get(url).content
-    df = pd.read_html(response)[0]
-    df_columns = df.columns[1]
+def get_weather_df(index):
+    url = weather_url
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        content = response.content
+        df = pd.read_html(content)[index]
+        return df
+    else:
+        print(f"Failed to retrive data {response.status_code}")
+
+def scrape(df):
+    scrape_df = get_weather_df(0)
+    df_columns = scrape_df.columns[1]
 
     #print(df_columns)
-    for i in range(len(weather_array[0])):
-        print(weather_array[1][i], df[df_columns][weather_array[0][i]])
+    df = pd.DataFrame({'temp': scrape_df[df_columns][weather_array[0][0]]}, index = [1])
+    df['wind_speed'] = scrape_df[df_columns][weather_array[0][1]]
+    df['total_rain'] = scrape_df[df_columns][weather_array[0][2]]
+    # for i in range(len(weather_array[0])):
+    #     print(weather_array[1][i], "==", scrape_df[df_columns][weather_array[0][i]])
     # df_list = pd.read_html(response)[0]
     # df_list.reset_index()
     # print(df_list.columns)
+    print(df)
+    return df
 
 if __name__ == '__main__':
-    scrape()
-    parse_json()
+    scrape(main_df)
+    #parse_json()
+    #print(main_df.head(5))
