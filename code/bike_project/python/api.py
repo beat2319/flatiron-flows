@@ -7,24 +7,22 @@ import pandas as pd
 station_url = "https://sundowner.colorado.edu/weather/atoc1/"
 bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
+# set as object to trick pandas to preserve datatype
 df = pd.DataFrame({
-    'station_id':pd.Series([], dtype = 'str'), 
-    'name':pd.Series([], dtype = 'str'), 
-    'lon':pd.Series([], dtype = 'float'), 
-    'lat':pd.Series([], dtype = 'float'),  
-    'num_docks_available':pd.Series([], dtype = 'int'),  
-    'num_bikes_available':pd.Series([], dtype = 'int'),  
-    'temp':pd.Series([], dtype = 'float'),  
-    'wind_speed':pd.Series([], dtype = 'float'),  
-    'total_rain':pd.Series([], dtype = 'float'),  
+    'station_id':pd.Series([], dtype = 'object'), 
+    'name':pd.Series([], dtype = 'object'), 
+    'lon':pd.Series([], dtype = 'object'), 
+    'lat':pd.Series([], dtype = 'object'),  
+    'num_docks_available':pd.Series([], dtype = 'object'),  
+    'num_bikes_available':pd.Series([], dtype = 'object'),  
+    'temp':pd.Series([], dtype = 'object'),  
+    'wind_speed':pd.Series([], dtype = 'object'),  
+    'total_rain':pd.Series([], dtype = 'object'),  
 })
 
 station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
 
-request_names = [
-    'station_information',
-    'station_status'
-]
+request_names = ['station_information', 'station_status']
 
 def get_bcycle_json(name):
     url = f"{bcycle_url}{name}"
@@ -36,21 +34,21 @@ def get_bcycle_json(name):
     else:
         print(f"Failed to retrive data {response.status_code}")
 
-def parse_json():
-    for i in range(len(request_names)):
-        bcycle_json = get_bcycle_json(request_names[i])
-        if bcycle_json:
-            for j in range(len(station_array)):
-                if i == 0:
-                    for k in range(len(info_columns)):
-                        df = pd.DataFrame({info_columns[k]: [bcycle_json["data"]["stations"][station_array[j]][info_columns[k]]]})
-                        print(df)
-                        print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][info_columns[k]])
-                if i == 1:
-                    for k in range(len(status_columns)):
-                        df = pd.DataFrame({status_columns[k]: [bcycle_json["data"]["stations"][station_array[j]][status_columns[k]]]})
-                        print(df)
-                        print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][status_columns[k]])
+# def parse_json():
+#     for i in range(len(request_names)):
+#         bcycle_json = get_bcycle_json(request_names[i])
+#         if bcycle_json:
+#             for j in range(len(station_array)):
+#                 if i == 0:
+#                     for k in range(len(info_columns)):
+#                         df = pd.DataFrame({info_columns[k]: [bcycle_json["data"]["stations"][station_array[j]][info_columns[k]]]})
+#                         print(df)
+#                         print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][info_columns[k]])
+#                 if i == 1:
+#                     for k in range(len(status_columns)):
+#                         df = pd.DataFrame({status_columns[k]: [bcycle_json["data"]["stations"][station_array[j]][status_columns[k]]]})
+#                         print(df)
+#                         print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][status_columns[k]])
 
 info_columns = ['station_id', 'name', 'lon', 'lat']
 
