@@ -83,5 +83,5 @@ df['release_period'] = np.select(conditions, choices, default=False)
 
 print(list(df))
 #print(df.query('release_period == True').head(50))
-#print(df.query('release_period == True').tail(50))
+print(df.query('release_period == True').tail(50))
 #print(df)
