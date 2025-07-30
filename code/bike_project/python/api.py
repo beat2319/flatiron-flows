@@ -3,37 +3,23 @@ import numpy as np
 from bs4 import BeautifulSoup
 import pandas as pd
 
-df = pd.DataFrame({
-    'station_id' :[], 
-    'name':[], 
-    'lon':[], 
-    'lat':[],  
-    'num_docks_available':[],  
-    'num_bikes_available':[],  
-    'temp':[],  
-    'wind_speed':[],  
-    'total_rain':[],  
-})
-
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
 station_url = "https://sundowner.colorado.edu/weather/atoc1/"
 bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
-name_array = np.array(['station_id', 'name', 'lon', 'lat', 'num_docks_available', 'num_bikes_available', 'temp', 'wind_speed', 'total_rain'], dtype = str)
+df = pd.DataFrame({
+    'station_id':pd.Series([], dtype = 'str'), 
+    'name':pd.Series([], dtype = 'str'), 
+    'lon':pd.Series([], dtype = 'float'), 
+    'lat':pd.Series([], dtype = 'float'),  
+    'num_docks_available':pd.Series([], dtype = 'int'),  
+    'num_bikes_available':pd.Series([], dtype = 'int'),  
+    'temp':pd.Series([], dtype = 'float'),  
+    'wind_speed':pd.Series([], dtype = 'float'),  
+    'total_rain':pd.Series([], dtype = 'float'),  
+})
 
 station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
-
-info_columns = [
-    'lat',
-    'lon',
-    'name',
-    'station_id'
-]
-
-status_columns = [
-    'num_docks_available',
-    'num_bikes_available'
-]
 
 request_names = [
     'station_information',
@@ -66,15 +52,33 @@ def parse_json():
                         print(df)
                         print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][status_columns[k]])
 
+info_columns = ['station_id', 'name', 'lon', 'lat']
+
 def parse_info():
     bcycle_json = get_bcycle_json(request_names[0])
     if bcycle_json:
         for i in range(len(station_array)):
-            return
+            if info_columns[0] == df.columns[0]:
+                df.at[i, df.columns[0]] = bcycle_json["data"]["stations"][station_array[i]][info_columns[0]]
+            if info_columns[1] == df.columns[1]:
+                df.at[i, df.columns[1]] = bcycle_json["data"]["stations"][station_array[i]][info_columns[1]]
+            if info_columns[2] == df.columns[2]:
+                df.at[i, df.columns[2]] = bcycle_json["data"]["stations"][station_array[i]][info_columns[2]]
+            if info_columns[3] == df.columns[3]:
+                df.at[i, df.columns[3]] = bcycle_json["data"]["stations"][station_array[i]][info_columns[3]]
 
-weather_array = np.array([[0,5,8],
-                         ['temp', 'wind_speed', 'total_rain']], dtype = object)
+status_columns = ['num_docks_available', 'num_bikes_available']
 
+def parse_status():
+    bcycle_json = get_bcycle_json(request_names[1])
+    if bcycle_json:
+        for i in range(len(station_array)):
+            if status_columns[0] == df.columns[4]:
+                df.at[i, df.columns[4]] = bcycle_json["data"]["stations"][station_array[i]][status_columns[0]]
+            if status_columns[1] == df.columns[5]:
+                df.at[i, df.columns[5]] = bcycle_json["data"]["stations"][station_array[i]][status_columns[1]]
+
+# parses throught the scraped table as a dataframe
 def get_weather_table(index):
     url = station_url
     response = requests.get(url)
@@ -86,11 +90,15 @@ def get_weather_table(index):
     else:
         print(f"Failed to retrive data {response.status_code}")
 
+weather_array = np.array([[0,5,8],
+                         ['temp', 'wind_speed', 'total_rain']], dtype = object)
+
+# this function takes in the weather table as dataframe
+# adds the parsed temp, wind and rain to the dataframe
 def parse_weather():
     scrape_df = get_weather_table(0)
-    if scrape_df:
+    if not scrape_df.empty:
         df_columns = scrape_df.columns[1]
-
         for i in range(len(station_array)):
             if weather_array[1][0] == df.columns[6]:
                 df.at[i, df.columns[6]] = scrape_df[df_columns][weather_array[0][0]]
@@ -98,8 +106,6 @@ def parse_weather():
                 df.at[i, df.columns[7]] = scrape_df[df_columns][weather_array[0][1]]
             if weather_array[1][2] == df.columns[8]:
                 df.at[i, df.columns[8]] = scrape_df[df_columns][weather_array[0][2]]
-    else:
-        print("unable to get weather table")
     
 
     #print(df_columns)
@@ -122,6 +128,9 @@ def parse_weather():
 
 if __name__ == '__main__':
     parse_weather()
+    parse_info()
+    parse_status()
     print(df)
+    #print(df.dtypes)
     #parse_json()
     #print(df.head(5))
