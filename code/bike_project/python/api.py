@@ -24,6 +24,8 @@ station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
 
 request_names = ['station_information', 'station_status']
 
+# gets the bycle json based on the request name
+# and verifies the respose code status
 def get_bcycle_json(name):
     url = f"{bcycle_url}{name}"
     response = requests.get(url)
@@ -34,24 +36,10 @@ def get_bcycle_json(name):
     else:
         print(f"Failed to retrive data {response.status_code}")
 
-# def parse_json():
-#     for i in range(len(request_names)):
-#         bcycle_json = get_bcycle_json(request_names[i])
-#         if bcycle_json:
-#             for j in range(len(station_array)):
-#                 if i == 0:
-#                     for k in range(len(info_columns)):
-#                         df = pd.DataFrame({info_columns[k]: [bcycle_json["data"]["stations"][station_array[j]][info_columns[k]]]})
-#                         print(df)
-#                         print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][info_columns[k]])
-#                 if i == 1:
-#                     for k in range(len(status_columns)):
-#                         df = pd.DataFrame({status_columns[k]: [bcycle_json["data"]["stations"][station_array[j]][status_columns[k]]]})
-#                         print(df)
-#                         print(station_array[j], "==", bcycle_json["data"]["stations"][station_array[j]][status_columns[k]])
-
 info_columns = ['station_id', 'name', 'lon', 'lat']
 
+# this function parse the station info json 
+# only returns the chosen info columns as df
 def parse_info():
     bcycle_json = get_bcycle_json(request_names[0])
     if bcycle_json:
@@ -67,6 +55,8 @@ def parse_info():
 
 status_columns = ['num_docks_available', 'num_bikes_available']
 
+# this function parse the station status json 
+# only returns the chosen status columns as df
 def parse_status():
     bcycle_json = get_bcycle_json(request_names[1])
     if bcycle_json:
@@ -77,6 +67,7 @@ def parse_status():
                 df.at[i, df.columns[5]] = bcycle_json["data"]["stations"][station_array[i]][status_columns[1]]
 
 # parses throught the scraped table as a dataframe
+# and verifies the respose code status
 def get_weather_table(index):
     url = station_url
     response = requests.get(url)
@@ -96,39 +87,20 @@ weather_array = np.array([[0,5,8],
 def parse_weather():
     scrape_df = get_weather_table(0)
     if not scrape_df.empty:
-        df_columns = scrape_df.columns[1]
+        columns = scrape_df.columns[1]
         for i in range(len(station_array)):
             if weather_array[1][0] == df.columns[6]:
-                df.at[i, df.columns[6]] = scrape_df[df_columns][weather_array[0][0]]
+                df.at[i, df.columns[6]] = scrape_df[columns][weather_array[0][0]]
             if weather_array[1][1] == df.columns[7]:
-                df.at[i, df.columns[7]] = scrape_df[df_columns][weather_array[0][1]]
+                df.at[i, df.columns[7]] = scrape_df[columns][weather_array[0][1]]
             if weather_array[1][2] == df.columns[8]:
-                df.at[i, df.columns[8]] = scrape_df[df_columns][weather_array[0][2]]
-    
-
-    #print(df_columns)
-    # df = pd.DataFrame({'temp': scrape_df[df_columns][weather_array[0][0]]}, index = [1])
-    # df['wind_speed'] = scrape_df[df_columns][weather_array[0][1]]
-    # df['total_rain'] = scrape_df[df_columns][weather_array[0][2]]
-
-    # for i in range(len(weather_array[0])):
-    #     if (weather_array[1][i]) == (df[i].columns.name):
-    #         df[i] = df[scrape_df[df_columns][weather_array[0][i]]]
-    #         #pd.DataFrame({weather_array[1][i]: [scrape_df[df_columns][weather_array[0][i]]]})
-    #         print(df[i])
-        #return df
-    # df_list = pd.read_html(response)[0]
-    # df_list.reset_index()
-    # print(df_list.columns)
-    # print(df)
-    # return df
-
+                df.at[i, df.columns[8]] = scrape_df[columns][weather_array[0][2]]
 
 if __name__ == '__main__':
     parse_weather()
     parse_info()
     parse_status()
     print(df)
-    #print(df.dtypes)
-    #parse_json()
-    #print(df.head(5))
+    # print(df.dtypes)
+    # parse_json()
+    # print(df.head(5))
