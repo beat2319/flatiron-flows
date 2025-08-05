@@ -78,10 +78,37 @@ choices = [
 
 df['release_period'] = np.select(conditions, choices, default=False)
 
+df_val = df['station_id']
+#print(df.loc[:'bcycle_boulder_1855'].head(12))
+#print(df.cell.get_loc('bcycle_boulder_1855'))
+
+# instead make new column, it will be a changed index on stat ion_id column (n-1)
+#df.index = pd.RangeIndex(start=1, stop=600, step=1)
+# df['station_id_two'] = df['station_id']
+
+# df.set_index([pd.RangeIndex(start=0, stop=26622, step=13), 'station_id_two'])
+# make a pivot table of the columns (for station_id) rows can (bikes_available & bikes_available_two) be pickups 
+# make a pivot table of the columns (for station_id) rows can (drops_available & drops_available_two) be dropoffs 
+# make a df for each row of station_id, columns remain the same
+
+# instead calculate the mod of each station (index mod 13 = [0 thru 12])
+# then change the index to start at 13 and do the same mod calulation
+# subtract the two columns from each other the result will be the pickups or dropoffs
+
+
+
+print(df['station_id_two'].head(10), df['station_id'].head(10))
+
+
+print(df.index.get_loc(df[df['station_id'] == 'bcycle_boulder_1855'].index[1]))
+print(df.loc[0, "bikes_available"])
+
+# making mutliple dfs based on
+
 # using pandas apply and lambda to apply specific function to the dataframe         
 # df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
-print(list(df))
+#print(list(df))
 #print(df.query('release_period == True').head(50))
-print(df.query('release_period == True').tail(50))
+#print(df.query('release_period == True').tail(50))
 #print(df)

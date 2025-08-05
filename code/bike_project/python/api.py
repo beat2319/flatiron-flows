@@ -2,9 +2,10 @@ import requests
 import numpy as np
 from bs4 import BeautifulSoup
 import pandas as pd
+import datetime as dt
 
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
-station_url = "https://sundowner.colorado.edu/weather/atoc1/"
+weather_url = "https://sundowner.colorado.edu/weather/atoc1/"
 bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
 # set as object to trick pandas to preserve datatype
@@ -17,7 +18,9 @@ df = pd.DataFrame({
     'num_bikes_available':pd.Series([], dtype = 'object'),  
     'temp':pd.Series([], dtype = 'object'),  
     'wind_speed':pd.Series([], dtype = 'object'),  
-    'total_rain':pd.Series([], dtype = 'object'),  
+    'total_rain':pd.Series([], dtype = 'object'),
+    'date':pd.Series([], dtype = 'object'),
+    'time':pd.Series([], dtype = 'object'),
 })
 
 station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
@@ -69,7 +72,7 @@ def parse_status():
 # parses throught the scraped table as a dataframe
 # and verifies the respose code status
 def get_weather_table(index):
-    url = station_url
+    url = weather_url
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -96,11 +99,20 @@ def parse_weather():
             if weather_array[1][2] == df.columns[8]:
                 df.at[i, df.columns[8]] = scrape_df[columns][weather_array[0][2]]
 
+# this function gets the current datetime 
+# and adds date and time to the dataframe
+def parse_datetime():
+    now = dt.datetime.now()
+    for i in range(len(station_array)):
+        df.at[i, df.columns[9]] = now.strftime("%Y-%m-%d")
+        df.at[i, df.columns[10]] = now.strftime("%H:%M:%S")
+
 if __name__ == '__main__':
     parse_weather()
     parse_info()
     parse_status()
+    parse_datetime()
     print(df)
-    # print(df.dtypes)
+    #print(df.dtypes)
     # parse_json()
     # print(df.head(5))
