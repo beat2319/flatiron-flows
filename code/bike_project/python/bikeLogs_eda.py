@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
+import time
 
 connection = sqlite3.connect('../../data/bike_logs.db')
 
@@ -100,8 +101,7 @@ df['release_period'] = np.select(conditions, choices, default=False)
 
 # deletes the intial rows, is the previous values
 def prev(df_column, value):
-    df['prev'] = df_column
-    df_prev = df['prev']
+    df_prev = df_column
     df_prev_t = df_prev.T
 
     for i in range(value):
@@ -112,24 +112,21 @@ def prev(df_column, value):
     # print (df_name.head(10))
     return df_prev
 
-# deletes the final rows, is the current value
+
 def curr(df_column, value):
-    
-    df['curr'] = df_column
-    index = ((len(df['curr'])) - (value))
+    df_curr = df_column
+    df_curr_t = df_curr.T
+
+    index = ((len(df_curr)) - (value))
     # print(index)
 
-    df_curr = df['curr']
-    df_t = df_curr.T
-
     for i in range(value):
-        df_t.pop(index + i)
+        df_curr_t.pop(index + i)
 
-    df_curr = df_t.T
+    df_curr = df_curr_t.T
     # print (df_name.head(10))
-    # df_curr = df_curr.reset_index()
+    df_curr = df_curr.reset_index(drop=True)
     return df_curr
-
 # create new dataframe
 # add curr and prev columns to dataframe
 # pop both
@@ -148,12 +145,8 @@ def calculate_diff(df_column, value):
     
     new_df['bikes_available'] = df_column
 
-    new_column = new_df['bikes_available']
-    curr_col = curr(new_column, value)
-    prev_col = prev(new_column, value)
-
-    new_df['curr'] = curr_col
-    new_df['prev'] = prev_col
+    new_df['curr'] = curr(new_df['bikes_available'], value)
+    new_df['prev'] = prev(new_df['bikes_available'], value)
 
     new_df = new_df.fillna(0)
 
@@ -163,7 +156,7 @@ def calculate_diff(df_column, value):
     conditions = [(new_df['pickups'] <= 0),
                   (new_df['pickups'] > 0)]
     choices = [0, new_df['pickups']]
-    new_df['new_pickups'] = np.select(conditions, choices)
+    new_df['pickups'] = np.select(conditions, choices)
     return new_df
 
 # print(df['station_id_two'].head(10), df['station_id'].head(10))
@@ -173,9 +166,12 @@ def calculate_diff(df_column, value):
 
 
 if __name__ == '__main__':
+    start = time.time()
     #print(df_bikes.head(20))
     test_df = calculate_diff(df['bikes_available'], 13)
-    print(test_df.head(14))
+    print(test_df.tail(20))
+    #print(df)
+
     # prev_bikes_avaliable = remove_curr(df['bikes_available'], 13)
     # print(prev_bikes_avaliable.head(10))
     # # want_in = (len(df['bikes_available']))
