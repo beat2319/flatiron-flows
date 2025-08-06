@@ -78,9 +78,9 @@ choices = [
 
 df['release_period'] = np.select(conditions, choices, default=False)
 
-df_val = df['station_id']
-#print(df.loc[:'bcycle_boulder_1855'].head(12))
-#print(df.cell.get_loc('bcycle_boulder_1855'))
+# df_val = df['station_id']
+# print(df.loc[:'bcycle_boulder_1855'].head(12))
+# print(df.cell.get_loc('bcycle_boulder_1855'))
 
 # instead make new column, it will be a changed index on stat ion_id column (n-1)
 #df.index = pd.RangeIndex(start=1, stop=600, step=1)
@@ -95,16 +95,94 @@ df_val = df['station_id']
 # then change the index to start at 13 and do the same mod calulation
 # subtract the two columns from each other the result will be the pickups or dropoffs
 
+# we have to make a separate dataframe that will first contain prev_bikes_available 
+# bikes_available transposed (first 13 columns removed)
+
+# deletes the intial rows, is the previous values
+def prev(df_column, value):
+    df['prev'] = df_column
+    df_prev = df['prev']
+    df_prev_t = df_prev.T
+
+    for i in range(value):
+        df_prev_t.pop(i)
+
+    df_prev = df_prev_t.T
+    df_prev = df_prev.reset_index(drop=True) 
+    # print (df_name.head(10))
+    return df_prev
+
+# deletes the final rows, is the current value
+def curr(df_column, value):
+    
+    df['curr'] = df_column
+    index = ((len(df['curr'])) - (value))
+    # print(index)
+
+    df_curr = df['curr']
+    df_t = df_curr.T
+
+    for i in range(value):
+        df_t.pop(index + i)
+
+    df_curr = df_t.T
+    # print (df_name.head(10))
+    # df_curr = df_curr.reset_index()
+    return df_curr
+
+# create new dataframe
+# add curr and prev columns to dataframe
+# pop both
+# calculate the difference and return as column
+
+def calculate_diff(df_column, value):
+    new_df = pd.DataFrame({
+    'station_id':pd.Series([], dtype = 'object'),
+    'bikes_available':pd.Series([], dtype = 'object'), 
+    'curr':pd.Series([], dtype = 'object'), 
+    'prev':pd.Series([], dtype = 'object'), 
+    'pickups':pd.Series([], dtype = 'object'), 
+    })
+
+    new_df['station_id'] = df['station_id']
+    
+    new_df['bikes_available'] = df_column
+
+    new_column = new_df['bikes_available']
+    curr_col = curr(new_column, value)
+    prev_col = prev(new_column, value)
+
+    new_df['curr'] = curr_col
+    new_df['prev'] = prev_col
+
+    new_df = new_df.fillna(0)
+
+    new_df['pickups'] = new_df['curr'] - new_df['prev']
+    new_df['pickups'] = new_df['pickups'].astype(int)
+
+    conditions = [(new_df['pickups'] <= 0),
+                  (new_df['pickups'] > 0)]
+    choices = [0, new_df['pickups']]
+    new_df['new_pickups'] = np.select(conditions, choices)
+    return new_df
+
+# print(df['station_id_two'].head(10), df['station_id'].head(10))
+
+# print(df.index.get_loc(df[df['station_id'] == 'bcycle_boulder_1855'].index[1]))
+# print(df.loc[0, "bikes_available"])
 
 
-print(df['station_id_two'].head(10), df['station_id'].head(10))
-
-
-print(df.index.get_loc(df[df['station_id'] == 'bcycle_boulder_1855'].index[1]))
-print(df.loc[0, "bikes_available"])
-
-# making mutliple dfs based on
-
+if __name__ == '__main__':
+    #print(df_bikes.head(20))
+    test_df = calculate_diff(df['bikes_available'], 13)
+    print(test_df.head(14))
+    # prev_bikes_avaliable = remove_curr(df['bikes_available'], 13)
+    # print(prev_bikes_avaliable.head(10))
+    # # want_in = (len(df['bikes_available']))
+    # curr_bikes_avaliable = calculate_diff 
+    # print(curr_bikes_avaliable.head(10))
+    #print(test_df.head(10))
+    #print(df['bikes_available'].tail(10))
 # using pandas apply and lambda to apply specific function to the dataframe         
 # df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
 
