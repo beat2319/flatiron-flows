@@ -21,9 +21,9 @@ df = pd.DataFrame({
     'temp':pd.Series([], dtype = 'object'),  
     'wind_speed':pd.Series([], dtype = 'object'),  
     'campus_rain':pd.Series([], dtype = 'object'),
+    'precipitation': pd.Series([], dtype = 'object'),
     'date':pd.Series([], dtype = 'object'),
     'time':pd.Series([], dtype = 'object'),
-    'precipitation': pd.Series([], dtype = 'object'),
 })
 
 station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
@@ -102,14 +102,6 @@ def parse_weather():
             if weather_array[1][2] == df.columns[8]:
                 df.at[i, df.columns[8]] = scrape_df[columns][weather_array[0][2]]
 
-# this function gets the current datetime 
-# and adds date and time to the dataframe
-def parse_datetime():
-    now = dt.datetime.now()
-    for i in range(len(station_array)):
-        df.at[i, df.columns[9]] = now.strftime("%Y-%m-%d")
-        df.at[i, df.columns[10]] = now.strftime("%H:%M:%S")
-
 def get_precip_json():
     url = f"{precip_url}"
     response = requests.get(url)
@@ -124,7 +116,15 @@ def parse_precip():
     precip_json = get_precip_json()
     if precip_json:
         for i in range(len(station_array)):
-            df.at[i, df.columns[11]] = precip_json["current"]["precipitation"]
+            df.at[i, df.columns[9]] = precip_json["current"]["precipitation"]
+
+# this function gets the current datetime 
+# and adds date and time to the dataframe
+def parse_datetime():
+    now = dt.datetime.now()
+    for i in range(len(station_array)):
+        df.at[i, df.columns[10]] = now.strftime("%Y-%m-%d")
+        df.at[i, df.columns[11]] = now.strftime("%H:%M:%S")
 
 
 
