@@ -3,8 +3,10 @@ import numpy as np
 from bs4 import BeautifulSoup
 import pandas as pd
 import datetime as dt
+import time
 
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
+precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.015&longitude=-105.2706&current=precipitation"
 weather_url = "https://sundowner.colorado.edu/weather/atoc1/"
 bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
@@ -18,9 +20,10 @@ df = pd.DataFrame({
     'num_bikes_available':pd.Series([], dtype = 'object'),  
     'temp':pd.Series([], dtype = 'object'),  
     'wind_speed':pd.Series([], dtype = 'object'),  
-    'total_rain':pd.Series([], dtype = 'object'),
+    'campus_rain':pd.Series([], dtype = 'object'),
     'date':pd.Series([], dtype = 'object'),
     'time':pd.Series([], dtype = 'object'),
+    'precipitation': pd.Series([], dtype = 'object'),
 })
 
 station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
@@ -83,7 +86,7 @@ def get_weather_table(index):
         print(f"Failed to retrive data {response.status_code}")
 
 weather_array = np.array([[0,5,8],
-                         ['temp', 'wind_speed', 'total_rain']], dtype = object)
+                         ['temp', 'wind_speed', 'campus_rain']], dtype = object)
 
 # this function takes in the weather table as dataframe
 # adds the parsed temp, wind and rain to the dataframe
@@ -107,11 +110,37 @@ def parse_datetime():
         df.at[i, df.columns[9]] = now.strftime("%Y-%m-%d")
         df.at[i, df.columns[10]] = now.strftime("%H:%M:%S")
 
+def get_precip_json():
+    url = f"{precip_url}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        precip_data = response.json()
+        return precip_data
+    else:
+        print(f"Failed to retrive data {response.status_code}")
+
+def parse_precip():
+    precip_json = get_precip_json()
+    if precip_json:
+        for i in range(len(station_array)):
+            df.at[i, df.columns[11]] = precip_json["current"]["precipitation"]
+
+
+
+
 if __name__ == '__main__':
+    start = time.time()
+
     parse_weather()
     parse_info()
     parse_status()
     parse_datetime()
+    parse_precip()
+
+    end = time.time()
+    print(end - start)
+    
     print(df)
     #print(df.dtypes)
     # parse_json()
