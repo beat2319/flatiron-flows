@@ -6,7 +6,7 @@ import datetime as dt
 import time
 
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
-precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.015&longitude=-105.2706&current=precipitation"
+precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.0073&longitude=-105.2660&current=precipitation"
 weather_url = "https://sundowner.colorado.edu/weather/atoc1/"
 bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
