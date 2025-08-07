@@ -24,7 +24,6 @@ df['is_semester'] = df['is_semester'].astype(int)
 df['is_weekend'] = df['is_weekend'].astype(int)
 
 def calculate_release():
-    # start = time.time()
     release_df = pd.DataFrame({
         'station_id':pd.Series([], dtype = 'object'),
         'date':pd.Series([], dtype = 'object'), 
@@ -91,7 +90,7 @@ def calculate_release():
     release_df['output'] = np.select(conditions, choices, default=False)
     # end = time.time()
     # print("release:", end - start)
-    return release_df['output']
+    return release_df
 
 def calculate_pickups():
     #start = time.time()
@@ -103,60 +102,36 @@ def calculate_pickups():
         'output':pd.Series([], dtype = 'object'), 
     })
 
-    pickups_df['station_id'] = df['station_id']
     
+    pickups_df['station_id'] = df['station_id']
     pickups_df['bikes_available'] = df['bikes_available']
-
     pickups_df['curr'] = pickups_df['bikes_available']
-    #pickups_df['curr'] = pickups_df[['curr']].infer_objects().fillna(0)
 
     index = pickups_df['station_id'].nunique()
-
-    print(index)
-
     pickups_df['prev'] = pickups_df['bikes_available'].shift(periods = index, fill_value = 0)
-    #pickups_df['prev'] = pickups_df[['prev']].infer_objects().fillna(0)
 
     pickups_df['output'] = pickups_df['prev'] - pickups_df['curr']
     pickups_df['output'] = pickups_df[['output']].infer_objects().fillna(0)
     pickups_df['output'] = pickups_df['output'].astype(int)
 
-    conditions = [(pickups_df['output'] <= 0),
-                  (pickups_df['output'] > 0)]
-    choices = [0, pickups_df['output']]
+    conditions = [
+        (pickups_df['output'] <= 0),
+        (pickups_df['output'] > 0)
+    ]
+    choices = [
+        0, 
+        pickups_df['output']
+    ]
     pickups_df['output'] = np.select(conditions, choices)
 
     # end = time.time()
     # print("pickups:", end - start)
     return pickups_df
 
-# print(df['station_id_two'].head(10), df['station_id'].head(10))
-
-# print(df.index.get_loc(df[df['station_id'] == 'bcycle_boulder_1855'].index[1]))
-# print(df.loc[0, "bikes_available"])
-
 
 if __name__ == '__main__':
     # print(df_bikes.head(20))
     test_one = calculate_pickups()
-    print(test_one.head(33))
+    print(test_one.head(10))
     test_two = calculate_release()
-    #print(df['name'].head(12))
-    #print(test_two.head(20))
-    #df['dropoffs'] = calculate_diff(df['docks_available'], 13)
-    # print(df)
-
-    # prev_bikes_avaliable = remove_curr(df['bikes_available'], 13)
-    # print(prev_bikes_avaliable.head(10))
-    # # want_in = (len(df['bikes_available']))
-    # curr_bikes_avaliable = calculate_diff 
-    # print(curr_bikes_avaliable.head(10))
-    #print(test_df.head(10))
-    #print(df['bikes_available'].tail(10))
-# using pandas apply and lambda to apply specific function to the dataframe         
-# df['release_period'] = df.apply(lambda x: isRelease(x['day_of_week'], x['time']), axis=1)
-
-#print(list(df))
-#print(df.query('release_period == True').head(50))
-#print(df.query('release_period == True').tail(50))
-#print(df)
+    print(test_two.head(10))
