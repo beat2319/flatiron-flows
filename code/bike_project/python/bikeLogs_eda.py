@@ -99,34 +99,40 @@ df['release_period'] = np.select(conditions, choices, default=False)
 # we have to make a separate dataframe that will first contain prev_bikes_available 
 # bikes_available transposed (first 13 columns removed)
 
-# deletes the intial rows, is the previous values
-def prev(df_column, value):
-    df_prev = df_column
-    df_prev_t = df_prev.T
+# deletes the intial rows
+# def curr(df_column, value):
+#     start = time.time()
+#     df_curr = df_column
+#     # df_curr_t = df_curr.T
 
-    for i in range(value):
-        df_prev_t.pop(i)
+#     # for i in range(value):
+#     #     df_curr_t.pop(i)
 
-    df_prev = df_prev_t.T
-    df_prev = df_prev.reset_index(drop=True) 
-    # print (df_name.head(10))
-    return df_prev
+#     # df_curr = df_curr_t.T
+#     #df_curr = df_curr.shift(periods = -13)
+#     #df_prev = df_prev.set(drop=True) 
+#     # print (df_name.head(10))
+#     end = time.time()
+#     print(end - start)  
+#     return df_curr
 
+# deletes final rows
+# def prev(df_column, value):
+#     df_prev = df_column
+#     # df_prev_t = df_prev.T
 
-def curr(df_column, value):
-    df_curr = df_column
-    df_curr_t = df_curr.T
+#     # index = ((len(df_prev)) - (value))
+#     # # # print(index)
 
-    index = ((len(df_curr)) - (value))
-    # print(index)
+#     # for i in range(value):
+#     #     df_prev_t.pop(index + i)
 
-    for i in range(value):
-        df_curr_t.pop(index + i)
+#     # df_prev = df_prev.reindex(13) 
+#     # df_prev = df_prev_t.T
+#     # print (df_name.head(10))
 
-    df_curr = df_curr_t.T
-    # print (df_name.head(10))
-    df_curr = df_curr.reset_index(drop=True)
-    return df_curr
+#     df_prev = df_prev.shift(periods = value, fill_value = 0)
+#     return df_prev
 # create new dataframe
 # add curr and prev columns to dataframe
 # pop both
@@ -135,29 +141,32 @@ def curr(df_column, value):
 def calculate_diff(df_column, value):
     new_df = pd.DataFrame({
     'station_id':pd.Series([], dtype = 'object'),
-    'bikes_available':pd.Series([], dtype = 'object'), 
-    'curr':pd.Series([], dtype = 'object'), 
+    'input':pd.Series([], dtype = 'object'), 
     'prev':pd.Series([], dtype = 'object'), 
-    'pickups':pd.Series([], dtype = 'object'), 
+    'curr':pd.Series([], dtype = 'object'), 
+    'output':pd.Series([], dtype = 'object'), 
     })
 
     new_df['station_id'] = df['station_id']
     
-    new_df['bikes_available'] = df_column
+    new_df['input'] = df_column
 
-    new_df['curr'] = curr(new_df['bikes_available'], value)
-    new_df['prev'] = prev(new_df['bikes_available'], value)
+    new_df['curr'] = new_df['input']
+    #new_df['curr'] = new_df[['curr']].infer_objects().fillna(0)
 
-    new_df = new_df.fillna(0)
+    new_df['prev'] = new_df['input'].shift(periods = value, fill_value = 0)
+    #new_df['prev'] = new_df[['prev']].infer_objects().fillna(0)
 
-    new_df['pickups'] = new_df['curr'] - new_df['prev']
-    new_df['pickups'] = new_df['pickups'].astype(int)
+    new_df['output'] = new_df['prev'] - new_df['curr']
+    new_df['output'] = new_df[['output']].infer_objects().fillna(0)
+    new_df['output'] = new_df['output'].astype(int)
 
-    conditions = [(new_df['pickups'] <= 0),
-                  (new_df['pickups'] > 0)]
-    choices = [0, new_df['pickups']]
-    new_df['pickups'] = np.select(conditions, choices)
-    return new_df
+    conditions = [(new_df['output'] <= 0),
+                  (new_df['output'] > 0)]
+    choices = [0, new_df['output']]
+    new_df['output'] = np.select(conditions, choices)
+
+    return new_df['output']
 
 # print(df['station_id_two'].head(10), df['station_id'].head(10))
 
@@ -166,11 +175,13 @@ def calculate_diff(df_column, value):
 
 
 if __name__ == '__main__':
-    start = time.time()
-    #print(df_bikes.head(20))
+    # start = time.time()
+    # print(df_bikes.head(20))
     test_df = calculate_diff(df['bikes_available'], 13)
-    print(test_df.tail(20))
-    #print(df)
+    print(test_df.head(20))
+      
+    #df['dropoffs'] = calculate_diff(df['docks_available'], 13)
+    # print(df)
 
     # prev_bikes_avaliable = remove_curr(df['bikes_available'], 13)
     # print(prev_bikes_avaliable.head(10))
