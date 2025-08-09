@@ -1,39 +1,41 @@
+import pandas as pd
 import numpy as np
-import pandas as pd 
+import time
 
-df = pd.DataFrame(np.random.randint(0, 15, size=(100, 1)), columns = ['a'])
-#df_2 = pd.DataFrame(np.random.randint(0, 15, size=(100, 1)), columns = ['b'])
+df = pd.DataFrame({
+    'station_id':pd.Series(['one', 'two', 'three', 'four', 'five'] * 6), 
+    'temp':pd.Series(np.random.randint(1,80,30)),  
+    'campus_rain':pd.Series([1]*30),
+    'precipitation': pd.Series([0]*30),
+})
 
-print(df)
+def calculate_precipitation():
+    start = time.time()
+    precipitation_df = pd.DataFrame({
+        'station_id':pd.Series([], dtype = 'object'),
+        'temp':pd.Series([], dtype = 'object'), 
+        'summer_precip':pd.Series([], dtype = 'object'), 
+        'winter_precip':pd.Series([], dtype = 'object'), 
+        'output':pd.Series([], dtype = 'object'), 
+    })
+    precipitation_df['station_id'] = df['station_id']
+    precipitation_df['temp'] = df['temp']
+    precipitation_df['summer_precip'] = df['campus_rain']
+    precipitation_df['winter_precip'] = df['precipitation']
 
-df['prev'] = df['a']
-df_prev = df['prev']
-df_prev_t = df_prev.T
+    conditions = [
+        (precipitation_df['temp'] <= 32),
+        (precipitation_df['temp'] > 32)
+    ]
+    choices = [
+        precipitation_df['winter_precip'], 
+        precipitation_df['summer_precip']
+    ]
+    precipitation_df['output'] = np.select(conditions, choices)
+    end = time.time()
+    print("pickups:", end - start)
+    return precipitation_df
 
-for i in range(13):
-    df_prev_t.pop(i)
-
-df_prev = df_prev_t.T
-df_prev = df_prev.reset_index(drop=True)
-
-print(df_prev)
-
-
-
-#print(index)
-df['curr'] = df['a']
-
-index = ((len(df['curr'])) - (13))
-
-df_curr = df['curr']
-df_curr_t = df_curr.T
-
-
-for i in range(13):
-    df_curr_t.pop(index + i)
-
-df_curr = df_curr_t.T
-#print (df_name.head(10))
-#df_curr = df_curr.reset_index()
-print(df_curr)
-
+if __name__ == '__main__':
+    test_df = calculate_precipitation()
+    print(test_df.head(40))
