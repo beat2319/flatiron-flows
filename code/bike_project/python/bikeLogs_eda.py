@@ -65,9 +65,9 @@ def calculate_release(df):
 
     conditions = [
         (((df['day_of_week'] == weekdays[0]) | 
-        (df['day_of_week'] == weekdays[2]) | 
-        (df['day_of_week'] == weekdays[4])) & 
-        (((df['time'] >= mwf_time[0][0]) & (df['time'] <= mwf_time[0][1])) | 
+          (df['day_of_week'] == weekdays[2]) | 
+          (df['day_of_week'] == weekdays[4])) & 
+            (((df['time'] >= mwf_time[0][0]) & (df['time'] <= mwf_time[0][1])) | 
             ((df['time'] >= mwf_time[1][0]) & (df['time'] <= mwf_time[1][1])) | 
             ((df['time'] >= mwf_time[2][0]) & (df['time'] <= mwf_time[2][1])) |
             ((df['time'] >= mwf_time[3][0]) & (df['time'] <= mwf_time[3][1])) |
@@ -78,8 +78,8 @@ def calculate_release(df):
             ((df['time'] >= mwf_time[8][0]) & (df['time'] <= mwf_time[8][1])) |
             ((df['time'] >= mwf_time[9][0]) & (df['time'] <= mwf_time[9][1])))) |
         (((df['day_of_week'] == weekdays[1]) | 
-        (df['day_of_week'] == weekdays[3])) & 
-        (((df['time'] >= tt_time[0][0]) & (df['time'] <= tt_time[0][1])) | 
+          (df['day_of_week'] == weekdays[3])) & 
+            (((df['time'] >= tt_time[0][0]) & (df['time'] <= tt_time[0][1])) | 
             ((df['time'] >= tt_time[1][0]) & (df['time'] <= tt_time[1][1])) | 
             ((df['time'] >= tt_time[2][0]) & (df['time'] <= tt_time[2][1])) |
             ((df['time'] >= tt_time[3][0]) & (df['time'] <= tt_time[3][1])) |
@@ -130,7 +130,7 @@ def calculate_pickups(df):
 
 def calculate_precipitation(df):
     df['curr'] = df['ss_precipitation']
-    df['prev'] = df['ss_precipitation'].shift(periods = 1)
+    df['prev'] = df.groupby('station_id')['ss_precipitation'].shift(fill_value = 0)
     df['difference'] = df['prev'] - df['curr']
     
     conditions_1 = [
@@ -164,6 +164,7 @@ if __name__ == '__main__':
     print(df_raw.head(10))
     print(df_eda.head(10))
     test_one = calculate_pickups(df_eda)
-    print(df_eda)
+    print(df_eda.query('is_release == True'))
+    #print(df_eda)
     # test_two = calculate_release()
     # print(test_two.head(10))

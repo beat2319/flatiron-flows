@@ -39,3 +39,4 @@ def calculate_precipitation():
 if __name__ == '__main__':
     test_df = calculate_precipitation()
     print(test_df.head(40))
+    conn = sqlite3.connect 
