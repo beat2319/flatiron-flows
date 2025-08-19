@@ -2,9 +2,9 @@ name: env_log
 channels:
   - defaults
 dependencies:
-  - python=3.13.7
+  - python=3.13.5
   - numpy=2.3.1
   - pandas=2.3.1
   - scikit-learn=0.24.2
-  - sqlite=3.45.3
-  - requests=2.32.5
+  - sqlite=3.50.2
+  - requests=2.32.4
