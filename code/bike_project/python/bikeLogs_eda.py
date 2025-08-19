@@ -1,15 +1,14 @@
 import sqlite3
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import datetime as dt
 import time
 
-connection = sqlite3.connect('../../data/bike_logs.db')
+conn = sqlite3.connect('../../data/bike_logs.db')
 
 query = "SELECT * FROM logs WHERE is_semester = 1 OR is_semester is NULL ORDER BY date ASC"
 
-df_raw = pd.read_sql(query, connection)
+df_raw = pd.read_sql(query, conn)
 
 # filling missing is_semester and is_weekend values with proper values
 # precipitation and bikes_available set to 0 for any null values 

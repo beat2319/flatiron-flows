@@ -1,11 +1,9 @@
 import requests
 import numpy as np
-from bs4 import BeautifulSoup
 import pandas as pd
 import datetime as dt
 import time
 import sqlite3
-import schedule 
 
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
 precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.0073&longitude=-105.2660&current=precipitation"
@@ -131,11 +129,11 @@ def log_data(df):
 
 if __name__ == '__main__':
     
-    schedule.every(5).minutes.do(log_data(log_df))
+    log_data(log_df)
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)
     #print(df.dtypes)
     # parse_json()
     # print(df.head(5))
