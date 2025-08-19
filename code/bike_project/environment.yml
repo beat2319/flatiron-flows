@@ -1,0 +1,11 @@
+name: log_env
+channels:
+  - defaults
+dependencies:
+  - python=3.13.7
+  - numpy=2.3.2
+  - pandas=2.3.1
+  - scikit-learn=0.24.2
+  - sqlite=3.45.3
+  - datetime=5.5
+  - requests=2.32.5

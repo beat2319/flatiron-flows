@@ -1,0 +1,10 @@
+FROM continuumio/miniconda3
+
+WORKDIR /python
+
+COPY environment.yml .
+RUN conda env create -f environment.yml
+
+SHELL ["conda", "run", "-n", "log_env", "/bin/bash", "-c"]
+
+RUN echo "bike_logs is live"
