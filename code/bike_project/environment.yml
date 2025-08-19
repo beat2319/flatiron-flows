@@ -7,5 +7,4 @@ dependencies:
   - pandas=2.3.1
   - scikit-learn=0.24.2
   - sqlite=3.45.3
-  - datetime=5.5
   - requests=2.32.5
