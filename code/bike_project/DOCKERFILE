@@ -5,6 +5,6 @@ WORKDIR /python
 COPY environment.yml .
 RUN conda env create -f environment.yml
 
-SHELL ["conda", "run", "-n", "env", "/bin/bash", "-c"]
+SHELL ["conda", "run", "-n", "env_log", "/bin/bash", "-c"]
 
 RUN echo "bike_logs is live"

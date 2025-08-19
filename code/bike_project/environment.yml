@@ -1,9 +1,9 @@
-name: log_env
+name: env_log
 channels:
   - defaults
 dependencies:
   - python=3.13.7
-  - numpy=2.3.0
+  - numpy=2.3.1
   - pandas=2.3.1
   - scikit-learn=0.24.2
   - sqlite=3.45.3
