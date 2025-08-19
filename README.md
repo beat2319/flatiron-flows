@@ -23,3 +23,7 @@ https://pythonspeed.com/articles/faster-python-json-parsing/
 
 https://api.weather.gov/
 https://gbfs.bcycle.com
+
+## Datetime
+
+https://www.w3resource.com/python-exercises/python-basic-exercise-3.php
