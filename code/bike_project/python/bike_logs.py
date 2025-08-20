@@ -5,6 +5,8 @@ import datetime as dt
 import time
 import sqlite3
 import lxml
+import logging as logger
+
 
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
 precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.0073&longitude=-105.2660&current=precipitation"
@@ -41,6 +43,7 @@ def get_bcycle_json(name):
         return bcycle_data
     else:
         print(f"Failed to retrive data {response.status_code}")
+        logger.error(response.status_code)
 
 # this function parse the station info json 
 # only returns the chosen info columns as df
@@ -74,6 +77,7 @@ def get_weather_table(index):
         return df
     else:
         print(f"Failed to retrive data {response.status_code}")
+        logger.error(response.status_code)
 
 weather_array = np.array([[0,5,8],
                          ['temp', 'wind_speed', 'campus_rain']], dtype = object)
@@ -101,6 +105,7 @@ def get_precip_json():
         return precip_data
     else:
         print(f"Failed to retrive data {response.status_code}")
+        logger.debugf("Failed to retrive data {statusCode}", statusCode=response.status_code)
 
 def parse_precip(df):
     precip_json = get_precip_json()

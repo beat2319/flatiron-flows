@@ -1,4 +1,4 @@
-name: env
+name: bikeLog_env
 channels:
   - defaults
 dependencies:
