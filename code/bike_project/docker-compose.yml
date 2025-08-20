@@ -1,9 +1,8 @@
 services:
-  web:
-    env_file:
-      - .env
   db:
     image: bikelog_env:latest
+    env_file:
+      - .env:/app/.env
     volumes:
       - ./../../data:/app/data
     command: ["tail", "-f", "/dev/null"]
