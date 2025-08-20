@@ -4,3 +4,11 @@ WORKDIR /app
 ADD environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
     echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
+
+COPY my-crontab /etc/cron.d/my-crontab
+RUN chmod 0644 /etc/cron.d/my-crontab
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
