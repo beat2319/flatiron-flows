@@ -16,6 +16,6 @@ services:
                 tasks:
                     docker:
                         - name: bikeLogs_python
-                          image: python:3-slim
+                          image: bike_logger:latest
                           script:
                               - python bike_logs.py
