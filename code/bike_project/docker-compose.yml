@@ -5,24 +5,4 @@ services:
     volumes:
       - ./../../data:/app/data
     command: ["tail", "-f", "/dev/null"]
-  tasker:
-      image: strm/tasker
-      volumes:
-          - "/var/run/docker.sock:/var/run/docker.sock"
-      environment:
-            configuration: |
-                logging:
-                    level:
-                        ROOT: WARN
-                        org.springframework.web: WARN
-                        sh.strm: DEBUG
-                schedule:
-                    - every: 5 minutes
-                      task: bikeLogs_python
-                tasks:
-                    docker:
-                        - name: bikeLogs_python
-                          image: bikelog_env:latest
-                          script:
-                              - python bike_logs.py
 
