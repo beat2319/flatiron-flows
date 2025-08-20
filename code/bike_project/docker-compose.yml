@@ -1,0 +1,7 @@
+version : '3'
+services:
+  db:
+    image: bike_logger:latest
+    volumes:
+      - ./../../data:/app/data
+    command: ["tail", "-f", "/dev/null"]
