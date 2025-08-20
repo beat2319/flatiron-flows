@@ -3,4 +3,4 @@ services:
     image: bike_logger:latest
     volumes:
       - ./../../data:/app/data
-    command: ["tail", "-f", "/dev/null"]
+    command: conda run -n env --no-capture-output -n myenv 
