@@ -8,4 +8,6 @@ RUN conda env create -f environment.yml
 
 SHELL ["conda", "run", "-n", "env", "/bin/bash", "-c"]
 
-RUN echo "bike_logs is live"
+RUN conda activate env
+
+RUN echo "bike_logs.py conda enviroment activated"

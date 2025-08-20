@@ -121,7 +121,7 @@ def log_data(df):
     parse_status(df)
     parse_datetime(df)
     parse_precip(df)
-    conn = sqlite3.connect('bike_logs.db')
+    conn = sqlite3.connect('/app/data/bike_logs.db')
     df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
     
 
