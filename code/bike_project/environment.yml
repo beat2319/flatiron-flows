@@ -8,3 +8,5 @@ dependencies:
   - sqlite=3.50.2
   - requests=2.32.4
   - lxml=5.3.0
+  - pathlib=1.0.1
+  - python-dotenv=1.1.0

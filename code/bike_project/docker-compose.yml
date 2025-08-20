@@ -1,6 +1,9 @@
 services:
+  web:
+    env_file:
+      - .env
   db:
-    image: bike_logger:latest
+    image: bikeLog_db:latest
     volumes:
       - ./../../data:/app/data
     command: ["tail", "-f", "/dev/null"]
@@ -19,3 +22,4 @@ services:
                           image: bike_logger:latest
                           script:
                               - python bike_logs.py
+

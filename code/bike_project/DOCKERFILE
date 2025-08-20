@@ -1,5 +1,5 @@
 FROM continuumio/miniconda3
-COPY ./python /app/
+COPY ./python/bike_logs.py /app/bike_logs.py
 WORKDIR /app
 ADD environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \

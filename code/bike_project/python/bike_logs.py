@@ -6,12 +6,17 @@ import time
 import sqlite3
 import lxml
 import logging as logger
-
+import os
+from dotenv import load_dotenv
 
 #boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
 precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.0073&longitude=-105.2660&current=precipitation"
 weather_url = "https://sundowner.colorado.edu/weather/atoc1/"
 bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
+
+#setting up discord webhook
+load_dotenv('.env')
+webhook_url = os.getenv('BIKELOGS_WEBHOOK')
 
 # set as object to trick pandas to preserve datatype
 log_df = pd.DataFrame({
@@ -128,8 +133,16 @@ def log_data(df):
     parse_precip(df)
     conn = sqlite3.connect('/app/data/bike_logs.db')
     df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
-    
 
+    data = {
+    "content": "data logged",
+    "username": "dataLogger_user",
+    }
+    result = requests.post(webhook_url, json=data)
+    if 200 <= result.status_code < 300:
+        print(f"Webhook sent {result.status_code}")
+    else:
+        print(f"Not sent with {result.status_code}, response:\n{result.json()}")
 
 
 
