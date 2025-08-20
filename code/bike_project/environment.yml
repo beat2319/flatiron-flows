@@ -1,4 +1,4 @@
-name: env_log
+name: env
 channels:
   - defaults
 dependencies:
