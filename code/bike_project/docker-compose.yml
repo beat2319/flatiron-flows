@@ -3,7 +3,7 @@ services:
     env_file:
       - .env
   db:
-    image: bikeLog_db:latest
+    image: bikelog_env:latest
     volumes:
       - ./../../data:/app/data
     command: ["tail", "-f", "/dev/null"]
@@ -19,7 +19,7 @@ services:
                 tasks:
                     docker:
                         - name: bikeLogs_python
-                          image: bike_logger:latest
+                          image: bikelog_env:latest
                           script:
                               - python bike_logs.py
 
