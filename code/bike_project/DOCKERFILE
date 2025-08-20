@@ -8,6 +8,6 @@ RUN conda env create -f environment.yml
 
 SHELL ["conda", "run", "-n", "env", "/bin/bash", "-c"]     
 
-CMD conda activate env
+ENTRYPOINT ["conda", "run", "-n", "env"]
 
 RUN echo "bike_logs.py conda enviroment activated"
