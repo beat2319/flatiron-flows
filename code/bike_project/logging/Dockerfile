@@ -1,4 +1,4 @@
-FROM python:alpine3.21
+FROM python:3.9-slim
 
 RUN apt update && \
     apt install -y cron
