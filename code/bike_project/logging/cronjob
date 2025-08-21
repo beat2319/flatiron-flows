@@ -1,1 +1,1 @@
-* * * * * python3 /usr/src/app/bike_logs.py >> /var/log/cron.log 2>&1
+* * * * * /bin/bash -c "python bike_logs.py" >> /var/log/cron.log 2>&1
