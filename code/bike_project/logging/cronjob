@@ -1,4 +1,4 @@
 SHELL=/bin/bash
 BASH_ENV=~/.bashrc_conda
-* * * * * conda activate my_env; python /usr/src/app/bike_logs.py >> /var/log/cron.log 2>&1
+* * * * * conda activate my_env; /usr/bin/python /usr/src/app/bike_logs.py >> /var/log/cron.log 2>&1
 #extra line
