@@ -1,2 +1,2 @@
 #!/bin/sh
-cron && tail -f /data/cron.log
+cron && tail -f /var/log/cron.log
