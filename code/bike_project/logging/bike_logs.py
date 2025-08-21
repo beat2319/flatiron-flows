@@ -1,4 +1,4 @@
-#!/usr/src/app/opt/conda/bin/python
+#!/usr/bin/env python
 import requests
 import numpy as np
 import pandas as pd
