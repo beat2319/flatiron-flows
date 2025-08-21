@@ -1,1 +1,2 @@
 * * * * * /usr/bin/python /bike_logs.py >> /data/cron.log 2>&1
+# new line
