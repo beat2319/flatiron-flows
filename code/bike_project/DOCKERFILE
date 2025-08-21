@@ -11,4 +11,4 @@ RUN chmod 644 /etc/cron.d/my-cron
 RUN apt update
 RUN apt install -y cron
 
-ENTRYPOINT [ "/usr/bin/cron", "-f" ]
+ENTRYPOINT ["/usr/bin/crontab", "/var/crontab"]
