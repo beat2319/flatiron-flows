@@ -1,1 +1,3 @@
+SHELL=/bin/bash
+BASH_ENV=~/.bashrc_conda
 * * * * * /bin/bash -c "python bike_logs.py" >> /var/log/cron.log 2>&1

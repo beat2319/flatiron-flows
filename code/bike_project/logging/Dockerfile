@@ -6,7 +6,7 @@ RUN apt update && \
 
 ADD environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
-    echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
+    echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc_conda
 
 WORKDIR /usr/src/app
 
