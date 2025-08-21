@@ -1,0 +1,1 @@
+* * * * * /usr/bin/python /bike_logs.py >> /dev/null 2>&1

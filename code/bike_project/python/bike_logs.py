@@ -1,3 +1,4 @@
+#!/usr/bin/bikelog_env python
 import requests
 import numpy as np
 import pandas as pd
