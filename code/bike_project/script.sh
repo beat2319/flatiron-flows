@@ -1,1 +1,1 @@
-/usr/bin/bikelog_env bash -c './bike_logs.py' > /dev/null 2>&1
+bash -c 'python bike_logs.py' > /dev/null 2>&1
