@@ -12,6 +12,8 @@ WORKDIR /usr/src/app
 
 COPY ./bike_logs.py /usr/src/app/bike_logs.py 
 
+RUN chmod +x /usr/src/app/bike_logs.py
+
 COPY cronjob /etc/cron.d/cronjob    
 
 RUN chmod 0644 /etc/cron.d/cronjob
