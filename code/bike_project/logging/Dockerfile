@@ -1,7 +1,12 @@
-FROM python:3.9-slim
+FROM continuumio/miniconda3
 
 RUN apt update && \
     apt install -y cron
+
+
+ADD environment.yml /tmp/environment.yml
+RUN conda env create -f /tmp/environment.yml && \
+    echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
 
 WORKDIR /usr/src/app
 
