@@ -1,2 +1,1 @@
-#! /bin/bash
-python /bike_logs.py >> /data/cron.log
+/usr/bin/bikelog_env bash -c './bike_logs.py' > /dev/null 2>&1
