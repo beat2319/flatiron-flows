@@ -1,1 +1,4 @@
-bash -c 'python bike_logs.py' > /dev/null 2>&1
+#!/bin/bash
+source /root/miniconda3/etc/profile.d/conda.sh && \
+conda activate bikeLog_env && \
+python ./bike_logs.py &
