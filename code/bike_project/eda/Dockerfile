@@ -5,15 +5,3 @@ WORKDIR /app
 ADD environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
     echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
-
-RUN apt update && \
-    apt install -y cron
-
-COPY my-crontab /etc/cron.d/my-crontab
-RUN chmod 0644 /my-crontab
-
-RUN crontab /my-crontab
-
-RUN chmod +x /bike_logs.py
-
-ENTRYPOINT ["/entrypoint.sh"]
