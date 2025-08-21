@@ -1,1 +1,1 @@
-* * * * * python /usr/src/app/main.py >> /var/log/cron.log 2>&1
+* * * * * python /usr/src/app/bike_logs.py >> /var/log/cron.log 2>&1
