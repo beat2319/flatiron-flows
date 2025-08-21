@@ -1,1 +1,1 @@
-*/1 * * * * python /bike_logs.py >> /data/cron.log
+*/1 * * * * root python /bike_logs.py >> /data/cron.log
