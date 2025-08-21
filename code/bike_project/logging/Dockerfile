@@ -10,11 +10,9 @@ RUN conda env create -f /tmp/environment.yml && \
 
 WORKDIR /usr/src/app
 
-COPY . .
+COPY ./bike_logs.py /usr/src/app/bike_logs.py 
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY cronjob /etc/cron.d/cronjob
+COPY cronjob /etc/cron.d/cronjob    
 
 RUN chmod 0644 /etc/cron.d/cronjob
 
