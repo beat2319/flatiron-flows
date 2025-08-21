@@ -1,1 +1,0 @@
-* * * * * python /bike_logs.py >> /var/log/cron.log 2>&1

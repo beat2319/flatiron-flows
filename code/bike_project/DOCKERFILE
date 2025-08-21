@@ -6,11 +6,6 @@ ADD environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
     echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
 
-RUN apt-get update && apt-get install -y cron
-COPY my-crontab /etc/cron.d/my-crontab
-RUN chmod 0644 /etc/cron.d/my-crontab
+RUN crontab crontab
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["crond", "-f"]
