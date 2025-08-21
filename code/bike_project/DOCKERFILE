@@ -6,6 +6,7 @@ ADD environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && \
     echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
 
+RUN apt-get update
 RUN apt-get install -y cron
 COPY ./crontab /app/crontab
 RUN crontab crontab
