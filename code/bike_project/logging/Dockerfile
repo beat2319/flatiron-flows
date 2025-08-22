@@ -1,28 +1,26 @@
 FROM continuumio/miniconda3
 
+# installing cron 
 RUN apt update && \
-    apt install -y cron
+    apt install -y cron 
 
+# copying and creating specific conda environment
+COPY environment.yml /tmp/environment.yml
+RUN conda env create -f /tmp/environment.yml 
 
-ADD environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml && \
-    echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc_conda
-
+# making working directory and moving files to it
 WORKDIR /usr/src/app
-
 COPY ./bike_logs.py /usr/src/app/bike_logs.py 
+COPY ./run_python_job.sh /usr/src/app/run_python_job.sh
 
-RUN chmod +x /usr/src/app/bike_logs.py
-
+# making scripts and cronjob executable for cron
+RUN chmod +x /usr/src/app/bike_logs.py /usr/src/app/run_python_job.sh
 COPY cronjob /etc/cron.d/cronjob    
-
 RUN chmod 0644 /etc/cron.d/cronjob
 
-# Apply the cron job
-RUN crontab /etc/cron.d/cronjob
-
-# Create the log file to be able to run tail
+# making log file for cronjob
 RUN touch /var/log/cron.log
 
-# Run the command on container startup
-CMD cron && tail -f /var/log/cron.log
+# linux has issues passing .env to cronjob and this is the workaround
+# also executing the cronjob
+CMD printenv >> /etc/environment && cron -f

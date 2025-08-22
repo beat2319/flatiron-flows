@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import requests
 import numpy as np
 import pandas as pd
@@ -50,6 +49,16 @@ def get_bcycle_json(name):
     else:
         print(f"Failed to retrive data {response.status_code}")
         logger.error(response.status_code)
+        data = {
+        "content": "get_bcycle_json() failed",
+        "username": str(response.status_code),
+        }
+        discord_result = requests.post(webhook_url, json=data)
+        if 200 <= discord_result.status_code < 300:
+            print(f"Webhook sent {discord_result.status_code}")
+        else:
+            print(f"Not sent with {discord_result.status_code}, response:\n{discord_result.json()}")
+
 
 # this function parse the station info json 
 # only returns the chosen info columns as df
@@ -84,6 +93,15 @@ def get_weather_table(index):
     else:
         print(f"Failed to retrive data {response.status_code}")
         logger.error(response.status_code)
+        data = {
+        "content": "get_weather_table() failed",
+        "username": str(response.status_code),
+        }
+        discord_result = requests.post(webhook_url, json=data)
+        if 200 <= discord_result.status_code < 300:
+            print(f"Webhook sent {discord_result.status_code}")
+        else:
+            print(f"Not sent with {discord_result.status_code}, response:\n{discord_result.json()}")
 
 weather_array = np.array([[0,5,8],
                          ['temp', 'wind_speed', 'campus_rain']], dtype = object)
@@ -112,6 +130,15 @@ def get_precip_json():
     else:
         print(f"Failed to retrive data {response.status_code}")
         logger.debugf("Failed to retrive data {statusCode}", statusCode=response.status_code)
+        data = {
+        "content": "get_precip_json() failed",
+        "username": str(response.status_code),
+        }
+        discord_result = requests.post(webhook_url, json=data)
+        if 200 <= discord_result.status_code < 300:
+            print(f"Webhook sent {discord_result.status_code}")
+        else:
+            print(f"Not sent with {discord_result.status_code}, response:\n{discord_result.json()}")
 
 def parse_precip(df):
     precip_json = get_precip_json()
@@ -134,18 +161,6 @@ def log_data(df):
     parse_precip(df)
     conn = sqlite3.connect('/usr/src/app/data/bike_logs.db')
     df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
-
-    data = {
-    "content": "data logged",
-    "username": "dataLogger_user",
-    }
-    result = requests.post(webhook_url, json=data)
-    if 200 <= result.status_code < 300:
-        print(f"Webhook sent {result.status_code}")
-    else:
-        print(f"Not sent with {result.status_code}, response:\n{result.json()}")
-
-
 
 if __name__ == '__main__':
     
