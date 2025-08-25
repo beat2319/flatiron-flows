@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import time
+from dateutil import tz
 
 conn = sqlite3.connect('../../data/bike_logs.db')
 
@@ -12,16 +13,21 @@ df_raw = pd.read_sql(query, conn)
 
 # filling missing is_semester and is_weekend values with proper values
 # precipitation and bikes_available set to 0 for any null values 
+#station_id|num_bikes_available|temp|wind_speed|campus_rain|precipitation|dttime
 values = {"bikes_available": 0, "docks_available": 0, "is_semester": 1, "is_weekend": 0, "precipitation": 0}
 df_raw = df_raw.fillna(value = values)
 
 # converting datatypes
-df_raw['bikes_available'] = df_raw['bikes_available'].astype(int)
-df_raw['docks_available'] = df_raw['docks_available'].astype(int)
-df_raw['date'] = pd.to_datetime(df_raw['date'])
-df_raw['is_semester'] = df_raw['is_semester'].astype(int)
-df_raw['is_weekend'] = df_raw['is_weekend'].astype(int)
+df_raw['num_bikes_available'] = df_raw['bikes_available'].astype(int)
 
+df_raw['date_time'] = pd.to_datetime(df_raw['dttime'], format='%y%m%d%H%M%S')
+from_zone = tz.gettz('UTC')
+to_zone = tz.gettz('America/Denver')
+df_raw['date_time'] = df_raw['date_time'].replace(tzinfo=from_zone)
+df_raw['date_time'] = df_raw['date_time'].astimezone(to_zone)
+
+df_raw['date'] = df_raw['date_time'].dt.date
+df_raw['time'] = df_raw['date_time'].dt.time
 #copy of raw cleaned data frame
 df_eda = df_raw.copy()
 # df_eda = df_eda.sort_values(by=['date','time'], ascending=[False, False])
@@ -127,6 +133,9 @@ def calculate_pickups(df):
     # print("pickups:", end - start)
     return df['pickups']
 
+# may want to shift by 5 as value changes every 5 min
+# also should make sure that it resets every day, just by only returning 0 if value is negative 
+# otherwise good i think
 def calculate_precipitation(df):
     df['curr'] = df['ss_precipitation']
     df['prev'] = df.groupby('station_id')['ss_precipitation'].shift(fill_value = 0)
