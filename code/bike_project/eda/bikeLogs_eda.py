@@ -10,14 +10,27 @@ conn = sqlite3.connect('../data/bikeLogs_backup.db')
 
 query = "SELECT * FROM bike_logs"
 
-df_raw = pd.read_sql(query, conn)
+df_eda = pd.read_sql(query, conn)
+
+df_eda = pd.DataFrame({
+    'station_id':pd.Series([], dtype = 'object'), 
+    'num_bikes_available':pd.Series([], dtype = 'object'),  
+    'temp':pd.Series([], dtype = 'object'),  
+    'wind_speed':pd.Series([], dtype = 'object'),  
+    'campus_rain':pd.Series([], dtype = 'object'),
+    'precipitation': pd.Series([], dtype = 'object'),
+    'dttime':pd.Series([], dtype = 'object'),
+    'date_time':pd.Series([], dtype = 'object'),
+    'date':pd.Series([], dtype = 'object'), 
+    'time':pd.Series([], dtype = 'object'), 
+})
 
 # filling missing is_semester and is_weekend values with proper values
 # precipitation and bikes_available set to 0 for any null values 
 #station_id|num_bikes_available|temp|wind_speed|campus_rain|precipitation|dttime
 
 # converting datatypes
-df_raw['num_bikes_available'] = df_raw['num_bikes_available'].astype(int)
+df_eda['num_bikes_available'] = df_eda['num_bikes_available'].astype(int)
 df_raw['date_time'] = pd.to_datetime(df_raw.dttime, format='%y%m%d%H%M%S')
 df_raw.drop(columns=['dttime'],inplace = True)
 local_timezone = pytz.timezone('America/Denver')
