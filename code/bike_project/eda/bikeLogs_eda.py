@@ -31,21 +31,21 @@ df_eda = pd.DataFrame({
 
 # converting datatypes
 df_eda['num_bikes_available'] = df_eda['num_bikes_available'].astype(int)
-df_raw['date_time'] = pd.to_datetime(df_raw.dttime, format='%y%m%d%H%M%S')
-df_raw.drop(columns=['dttime'],inplace = True)
+df_eda['date_time'] = pd.to_datetime(df_eda.dttime, format='%y%m%d%H%M%S')
+df_eda.drop(columns=['dttime'],inplace = True)
 local_timezone = pytz.timezone('America/Denver')
-df_raw['date_time'] = pd.to_datetime(df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
-df_raw['date_time'] = df_raw['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
-df_raw['date_time'] = pd.to_datetime(df_raw['date_time'])
+df_eda['date_time'] = pd.to_datetime(df_eda['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
+df_eda['date_time'] = df_eda['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+df_eda['date_time'] = pd.to_datetime(df_eda['date_time'])
 
 # local_timezone = pytz.timezone('America/Denver')
-df_raw['time'] = df_raw['date_time'].dt.strftime("%H:%M:%S")
-df_raw['date'] = df_raw['date_time'].dt.strftime('%Y-%m-%d')
-df_raw['date']= pd.to_datetime(df_raw['date'])
+df_eda['time'] = df_eda['date_time'].dt.strftime("%H:%M:%S")
+df_eda['date'] = df_eda['date_time'].dt.strftime('%Y-%m-%d')
+df_eda['date']= pd.to_datetime(df_eda['date'])
 
 # df_raw['converted_date_time'] = df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
 #copy of raw cleaned data frame
-df_eda = df_raw.copy()
+#df_eda = df_raw.copy()
 # df_eda = df_eda.sort_values(by=['date','time'], ascending=[False, False])
 
 
@@ -188,8 +188,8 @@ def calculate_precipitation(df):
 
 if __name__ == '__main__':
     # print(df_bikes.head(20))
-    print(df_raw.head(10))
-    print(calculate_release(df_raw))
+    print(df_eda.head(10))
+    print(calculate_release(df_eda))
 
     #print(df_eda)
     # test_two = calculate_release()
