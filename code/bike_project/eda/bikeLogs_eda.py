@@ -3,31 +3,34 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import time
-from dateutil import tz
+from datetime import datetime
+import pytz
 
-conn = sqlite3.connect('../../data/bike_logs.db')
+conn = sqlite3.connect('../data/bikeLogs_backup.db')
 
-query = "SELECT * FROM logs WHERE is_semester = 1 OR is_semester is NULL ORDER BY date ASC"
+query = "SELECT * FROM bike_logs"
 
 df_raw = pd.read_sql(query, conn)
 
 # filling missing is_semester and is_weekend values with proper values
 # precipitation and bikes_available set to 0 for any null values 
 #station_id|num_bikes_available|temp|wind_speed|campus_rain|precipitation|dttime
-values = {"bikes_available": 0, "docks_available": 0, "is_semester": 1, "is_weekend": 0, "precipitation": 0}
-df_raw = df_raw.fillna(value = values)
 
 # converting datatypes
-df_raw['num_bikes_available'] = df_raw['bikes_available'].astype(int)
+df_raw['num_bikes_available'] = df_raw['num_bikes_available'].astype(int)
+df_raw['date_time'] = pd.to_datetime(df_raw.dttime, format='%y%m%d%H%M%S')
+df_raw.drop(columns=['dttime'],inplace = True)
+local_timezone = pytz.timezone('America/Denver')
+df_raw['date_time'] = pd.to_datetime(df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
+df_raw['date_time'] = df_raw['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+df_raw['date_time'] = pd.to_datetime(df_raw['date_time'])
 
-df_raw['date_time'] = pd.to_datetime(df_raw['dttime'], format='%y%m%d%H%M%S')
-from_zone = tz.gettz('UTC')
-to_zone = tz.gettz('America/Denver')
-df_raw['date_time'] = df_raw['date_time'].replace(tzinfo=from_zone)
-df_raw['date_time'] = df_raw['date_time'].astimezone(to_zone)
+# local_timezone = pytz.timezone('America/Denver')
+df_raw['time'] = df_raw['date_time'].dt.strftime("%H:%M:%S")
+df_raw['date'] = df_raw['date_time'].dt.strftime('%Y-%m-%d')
+df_raw['date']= pd.to_datetime(df_raw['date'])
 
-df_raw['date'] = df_raw['date_time'].dt.date
-df_raw['time'] = df_raw['date_time'].dt.time
+# df_raw['converted_date_time'] = df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
 #copy of raw cleaned data frame
 df_eda = df_raw.copy()
 # df_eda = df_eda.sort_values(by=['date','time'], ascending=[False, False])
@@ -41,6 +44,7 @@ def calculate_release(df):
     #     'day_of_week':pd.Series([], dtype = 'object'), 
     #     'output':pd.Series([], dtype = 'object'), 
     # })
+
     df['day_of_week'] = df['date'].dt.day_name()
 
     # 2D and 1D arrays to organize specific times and days
@@ -98,6 +102,8 @@ def calculate_release(df):
     df['is_release'] = np.select(conditions, choices, default=False)
 
     df.drop(columns=['day_of_week'],inplace = True)
+    df.drop(columns=['date'],inplace = True)
+    df.drop(columns=['time'],inplace = True)
     # end = time.time()
     # print("release:", end - start)
     return df['is_release']
@@ -138,7 +144,7 @@ def calculate_pickups(df):
 # otherwise good i think
 def calculate_precipitation(df):
     df['curr'] = df['ss_precipitation']
-    df['prev'] = df.groupby('station_id')['ss_precipitation'].shift(fill_value = 0)
+    df['prev'] = df.groupby('station_id')['ss_precipitation'].shift(periods=5, fill_value = 0)
     df['difference'] = df['prev'] - df['curr']
     
     conditions_1 = [
@@ -170,9 +176,8 @@ def calculate_precipitation(df):
 if __name__ == '__main__':
     # print(df_bikes.head(20))
     print(df_raw.head(10))
-    print(df_eda.head(10))
-    test_one = calculate_pickups(df_eda)
-    print(df_eda.query('is_release == True'))
+    print(calculate_release(df_raw))
+
     #print(df_eda)
     # test_two = calculate_release()
     # print(test_two.head(10))
