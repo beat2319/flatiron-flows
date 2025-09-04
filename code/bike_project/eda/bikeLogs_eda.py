@@ -3,14 +3,12 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import time
-from datetime import datetime
+import timeit
 import pytz
 
 conn = sqlite3.connect('../data/bikeLogs_backup.db')
 
 query = "SELECT * FROM bike_logs"
-
-df_eda = pd.read_sql(query, conn)
 
 df_eda = pd.DataFrame({
     'station_id':pd.Series([], dtype = 'object'), 
@@ -25,27 +23,20 @@ df_eda = pd.DataFrame({
     'time':pd.Series([], dtype = 'object'), 
 })
 
+df_eda = pd.read_sql(query, conn)
+
 # filling missing is_semester and is_weekend values with proper values
 # precipitation and bikes_available set to 0 for any null values 
 #station_id|num_bikes_available|temp|wind_speed|campus_rain|precipitation|dttime
 
 # converting datatypes
 df_eda['num_bikes_available'] = df_eda['num_bikes_available'].astype(int)
-df_eda['date_time'] = pd.to_datetime(df_eda.dttime, format='%y%m%d%H%M%S')
-df_eda.drop(columns=['dttime'],inplace = True)
-local_timezone = pytz.timezone('America/Denver')
-df_eda['date_time'] = pd.to_datetime(df_eda['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
-df_eda['date_time'] = df_eda['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
-df_eda['date_time'] = pd.to_datetime(df_eda['date_time'])
+df_eda['dttime'] = pd.to_datetime(df_eda.dttime, format='%y%m%d%H%M%S')
 
-# local_timezone = pytz.timezone('America/Denver')
-df_eda['time'] = df_eda['date_time'].dt.strftime("%H:%M:%S")
-df_eda['date'] = df_eda['date_time'].dt.strftime('%Y-%m-%d')
-df_eda['date']= pd.to_datetime(df_eda['date'])
 
 # df_raw['converted_date_time'] = df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
-#copy of raw cleaned data frame
-#df_eda = df_raw.copy()
+# copy of raw cleaned data frame
+# df_eda = df_raw.copy()
 # df_eda = df_eda.sort_values(by=['date','time'], ascending=[False, False])
 
 
@@ -57,8 +48,19 @@ def calculate_release(df):
     #     'day_of_week':pd.Series([], dtype = 'object'), 
     #     'output':pd.Series([], dtype = 'object'), 
     # })
+    # start = timeit.timeit()
+    local_timezone = pytz.timezone('America/Denver')
+    df['date_time'] = pd.to_datetime(df['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
+
+    # local_timezone = pytz.timezone('America/Denver')
+    df['time'] = df['date_time'].dt.strftime("%H:%M:%S")
+    df['date'] = df['date_time'].dt.strftime('%Y-%m-%d')
+    df['date']= pd.to_datetime(df['date'])
 
     df['day_of_week'] = df['date'].dt.day_name()
+    
+    # end = timeit.timeit()
+    # print(end - start)
 
     # 2D and 1D arrays to organize specific times and days
     mwf_time =np.array([['08:50:00', '08:55:00'],
