@@ -60,13 +60,17 @@ def calculate_pickups(df):
 
 def webhooks(df):
     df['pickups'] = calculate_pickups(df)
-    pickups_total = df.groupby('station_id').resample('d', on='dttime')['pickups'].count()
-    campus_rain_mean = df.resample('d', on='dttime')['campus_rain'].mean()
-    boulder_rain_mean = df.resample('d', on='dttime')['precipitation'].mean()
-    temp_mean = df.resample('d', on='dttime')['temp'].mean()
-    wind_mean = df.resample('d', on='dttime')['wind_speed'].mean()
 
-    return temp_mean
+    # now = pd.to_datetime('2025-08-26', format='%Y-%m-%d')
+    # main_query = f'dttime == {now}'
+    df_filtered = df[df['dttime'].dt.strftime('%Y-%m-%d') == '2025-08-26']
+    # pickups_total = df_filtered.groupby('station_id').resample('d', on='dttime')['pickups'].count()
+    # campus_rain_mean = df.resample('d', on='dttime')['campus_rain'].mean()
+    # boulder_rain_mean = df.resample('d', on='dttime')['precipitation'].mean()
+    # temp_mean = df.resample('d', on='dttime')['temp'].mean()
+    # wind_mean = df.resample('d', on='dttime')['wind_speed'].mean()
+
+    return df_filtered
 
 if __name__ == '__main__':
     print(webhooks(df_webhook))
