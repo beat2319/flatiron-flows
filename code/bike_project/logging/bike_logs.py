@@ -5,6 +5,7 @@ import datetime as dt
 import time
 import sqlite3
 import lxml
+import pytz
 import logging as logger
 import os
 from dotenv import load_dotenv
@@ -32,8 +33,9 @@ log_df = pd.DataFrame({
     'precipitation': pd.Series([], dtype = 'object'),
     'dttime':pd.Series([], dtype = 'object'),
 })
-
-station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
+#station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
+station_array = np.array([[0, 14, 19, 29, 35, 40, 44, 52, 53, 60, 59, 15, 9],
+    ["bcycle_boulder_1855", "bcycle_boulder_2132", "bcycle_boulder_2756", "bcycle_boulder_2767", "bcycle_boulder_3318", "bcycle_boulder_3894", "bcycle_boulder_4657", "bcycle_boulder_7393", "bcycle_boulder_7785", "bcycle_boulder_8892", "bcycle_boulder_8889","bcycle_boulder_2144", "bcycle_boulder_1872"]], dtype=object)
 
 request_names = ['station_information', 'station_status']
 
@@ -65,18 +67,25 @@ def get_bcycle_json(name):
 def parse_info(df):
     bcycle_json = get_bcycle_json(request_names[0])
     if bcycle_json:
-        for i in range(len(station_array)):
-            if 'station_id' == df.columns[0]:
-                df.at[i, df.columns[0]] = bcycle_json["data"]["stations"][station_array[i]]['station_id']
+        for i in range(len(station_array[0])):
+            # if 'station_id' == df.columns[0]:
+            if bcycle_json["data"]["stations"][station_array[0][i]]['station_id'] == station_array[1][i]:
+                df.at[i, df.columns[0]] = bcycle_json["data"]["stations"][station_array[0][i]]['station_id']
+            else:
+                print(f"Failed to retrive data for {station_array[1][i]} at index {station_array[0][i]}")
+                logger.error(station_array[1][i])
 
 # this function parse the station status json 
 # only returns the chosen status columns as df
 def parse_status(df):
     bcycle_json = get_bcycle_json(request_names[1])
     if bcycle_json:
-        for i in range(len(station_array)):
-            if 'num_bikes_available' == df.columns[1]:
-                df.at[i, df.columns[1]] = bcycle_json["data"]["stations"][station_array[i]]['num_bikes_available']
+        for i in range(len(station_array[0])):
+            if bcycle_json["data"]["stations"][station_array[0][i]]['station_id'] == station_array[1][i]:
+                df.at[i, df.columns[1]] = bcycle_json["data"]["stations"][station_array[0][i]]['num_bikes_available']
+            else:
+                print(f"Failed to retrive data for {station_array[1][i]} at index {station_array[0][i]}")
+                logger.error(station_array[1][i])
             # if status_columns[1] == df.columns[2]:
             #     df.at[i, df.columns[2]] = bcycle_json["data"]["stations"][station_array[i]][status_columns[1]]
 
@@ -112,7 +121,7 @@ def parse_weather(df):
     scrape_df = get_weather_table(0)
     if not scrape_df.empty:
         columns = scrape_df.columns[1]
-        for i in range(len(station_array)):
+        for i in range(len(station_array[0])):
             if weather_array[1][0] == df.columns[2]:
                 df.at[i, df.columns[2]] = scrape_df[columns][weather_array[0][0]]
             if weather_array[1][1] == df.columns[3]:
@@ -143,15 +152,15 @@ def get_precip_json():
 def parse_precip(df):
     precip_json = get_precip_json()
     if precip_json:
-        for i in range(len(station_array)):
+        for i in range(len(station_array[0])):
             df.at[i, df.columns[5]] = precip_json["current"]["precipitation"]
 
 # this function gets the current datetime 
 # and adds date and time to the dataframe
 def parse_datetime(df):
     now = dt.datetime.now()
-    for i in range(len(station_array)):
-        df.at[i, df.columns[6]] = now.strftime('%y%m%d%H%M%S')
+    for i in range(len(station_array[0])):
+        df.at[i, df.columns[6]] = now
 
 def log_data(df):
     parse_weather(df)
