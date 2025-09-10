@@ -37,9 +37,8 @@ local_timezone = pytz.timezone('America/Denver')
 df_webhook['num_bikes_available'] = df_webhook['num_bikes_available'].astype(int)
 df_webhook['dttime'] = pd.to_datetime(df_webhook.dttime)
 df_webhook['dttime'] = pd.to_datetime(df_webhook['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
-df_webhook['hours'] = pd.to_datetime(df_webhook['dttime'].dt.strftime('%H'))
 
-print(df_webhook['hours'])
+# print(df_webhook['hours'])
 
 def calculate_pickups(df):
     #start = time.time()
@@ -79,7 +78,7 @@ def calculate_pickups(df):
 def calculate_campus_rain(df):
     df['curr'] = df['campus_rain']
     df['prev'] = df.groupby('station_id')['campus_rain'].shift(periods=5, fill_value = 0)
-    df['difference'] = df['prev'] - df['curr']
+    df['difference'] = df['curr'] - df['prev']
 
     df['campus_rain'] = df['difference']
 
@@ -89,45 +88,85 @@ def calculate_campus_rain(df):
 
     return df['campus_rain']
 
-def webhooks(df):
+def pickups_graph(df, current_time):
     df['pickups'] = calculate_pickups(df)
-    df['campus_rain'] = calculate_campus_rain(df)
-    # df['pickups'] = 'pickups_' + df['pickups'].astype(str)
+    pickups_total = df.groupby('station_id', as_index=False)['pickups'].sum()
+    pickups_total['station_id'] = pickups_total['station_id'].str.replace('bcycle_boulder_', ' ')
+    pickups_graph = sns.barplot(data=pickups_total, x="station_id", y ="pickups", palette="Set2")
+    pickups_graph.set_title(f'Total Pickups by Station ({current_time})')
+    pickups_graph.set_ylabel('Total Pickups')
+    pickups_graph.set_xlabel('Station')
+    plt.savefig("pickups_graph.png")
 
-    # now = pd.to_datetime('2025-08-26', format='%Y-%m-%d')
+def campus_rain_graph(df, current_time):
+    df['campus_rain'] = calculate_campus_rain(df)
+    campus_rain_mean = df.groupby('hours', as_index=False)['campus_rain'].mean()
+    campus_rain_graph = sns.relplot(data = campus_rain_mean, x= 'hours', y='campus_rain', kind='line')
+    campus_rain_graph.figure.subplots_adjust(top=0.9)
+    campus_rain_graph.figure.suptitle(f'Campus Rain by Hour ({current_time})')
+    campus_rain_graph.set_ylabels('Campus Rain in Inches')
+    campus_rain_graph.set_xlabels('Hours')
+    plt.savefig("campus_rain_graph.png")
+
+def temp_graph(df, current_time):
+    temp_mean = df.groupby('hours', as_index=False)['temp'].mean()
+    temp_graph = sns.relplot(data = temp_mean, x= 'hours', y='temp', kind='line')
+    temp_graph.figure.subplots_adjust(top=0.9)
+    temp_graph.figure.suptitle(f'Temperature by Hour ({current_time})')
+    temp_graph.set_ylabels('Temperature in °F')
+    temp_graph.set_xlabels('Hours')
+    plt.savefig("temp_graph.png")
+
+def boulder_rain_graph(df, current_time):
+    boulder_rain_mean = df.groupby('hours', as_index=False)['precipitation'].mean()
+    boulder_rain_graph = sns.relplot(data = boulder_rain_mean, x= 'hours', y='precipitation', kind='line')
+    boulder_rain_graph.figure.subplots_adjust(top=0.9)
+    boulder_rain_graph.figure.suptitle(f'Boulder Precipitation by Hour ({current_time})')
+    boulder_rain_graph.set_ylabels('Boulder Precipitation in Inches')
+    boulder_rain_graph.set_xlabels('Hours')
+    plt.savefig("boulder_rain_graph.png")
+
+def wind_graph(df, current_time):
+    wind_mean = df.groupby('hours', as_index=False)['wind_speed'].mean()
+    wind_graph = sns.relplot(data = wind_mean, x= 'hours', y='wind_speed', kind='line')
+    wind_graph.figure.subplots_adjust(top=0.9)
+    wind_graph.figure.suptitle(f'Wind Speed by Hour ({current_time})')
+    wind_graph.set_ylabels('Wind in MPH')
+    wind_graph.set_xlabels('Hours')
+    plt.savefig("wind_graph.png")
+
+def webhooks(df):
     now = dt.datetime.now(local_timezone)
     current_time = now.strftime('%Y-%m-%d')
 
-    # main_query = f'dttime == {now}'
     df_filtered = df[df['dttime'].dt.strftime('%Y-%m-%d') == current_time]
-    pickups_total = df_filtered.groupby('station_id', as_index=False)['pickups'].sum()
-    #campus_rain_mean = df_filtered.groupby('hour', as_index=False)['campus_rain'].mean()
+    df_filtered['hours'] = pd.to_datetime(df_filtered['dttime']).dt.hour
+
     # campus_rain_mean = df_filtered['campus_rain'].mean()
-    boulder_rain_mean = df_filtered['precipitation'].mean()
-    temp_mean = df_filtered['temp'].mean()
-    wind_mean = df_filtered['wind_speed'].mean()
-    # campus_rain_mean = df.resample('d', on='dttime')['campus_rain'].mean()
-    # boulder_rain_mean = df.resample('d', on='dttime')['precipitation'].mean()
-    # temp_mean = df.resample('d', on='dttime')['temp'].mean()
-    # wind_mean = df.resample('d', on='dttime')['wind_speed'].mean()
-    pickups_total['station_id'] = pickups_total['station_id'].str.replace('bcycle_boulder_', '')
-    #print(campus_rain_mean)
-    ax = sns.barplot(data=pickups_total, x="station_id", y ="pickups", palette="Set2")
-    ax.set_title(f'Total Pickups by Station ({current_time})')
-    ax.set_ylabel('Total Pickups')
-    ax.set_xlabel('Station')
-    # pickups_total.plot(kind = 'bar' )
-    plt.show()
+
+    pickups_graph(df_filtered, current_time)
+    campus_rain_graph(df_filtered, current_time)
+    temp_graph(df_filtered, current_time)
+    boulder_rain_graph(df_filtered, current_time)
+    wind_graph(df_filtered, current_time)
+    print(df_filtered["campus_rain"].tail())
+
+    # plt.show()
+    # payload = {
+    #     file: "./pickups_graph.png",
+    # }
 
     weather = {
         "description": "text in embed",
+        # "payload" : pickups_graph.png,
         "title": "embed title",
         "color": 1127128
         }
     
     total = {
-        "description": str(),
+        "description": "text in embed",
         "title": "embed title",
+        # "payload" : payload,
         "color": 14177041
     }
     
