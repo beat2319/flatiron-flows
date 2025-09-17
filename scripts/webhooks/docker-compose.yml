@@ -1,0 +1,8 @@
+services:
+  db:
+    image: webhook_env:latest
+    env_file: 
+      - .env
+    volumes:
+      - ../../data:/app/data
+    restart: unless-stopped

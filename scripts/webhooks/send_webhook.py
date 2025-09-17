@@ -3,19 +3,19 @@ import sqlite3
 import pandas as pd
 import numpy as np
 import datetime as dt
-import time
-import timeit
 import pytz
+import json
 import os
 from json import loads, dumps
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 import seaborn as sns
+import shutil
 
 load_dotenv('.env')
 webhook_url = os.getenv('BIKELOGS_WEBHOOK')
 
-conn = sqlite3.connect('../data/bike_logs.db')
+conn = sqlite3.connect('../../data/bike_logs.db')
 
 query = "SELECT * FROM bike_logs"
 
@@ -39,6 +39,10 @@ df_webhook['dttime'] = pd.to_datetime(df_webhook.dttime)
 df_webhook['dttime'] = pd.to_datetime(df_webhook['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
 
 # print(df_webhook['hours'])
+now = dt.datetime.now(local_timezone)
+current_time = now.strftime('%Y-%m-%d')
+df_filtered = df_webhook[df_webhook['dttime'].dt.strftime('%Y-%m-%d') == current_time]
+
 
 def calculate_pickups(df):
     #start = time.time()
@@ -61,12 +65,12 @@ def calculate_pickups(df):
         0, 
         df['difference']
     ]
-    df.drop(columns=['curr'],inplace = True)
-    df.drop(columns=['prev'],inplace = True)
-    df.drop(columns=['difference'],inplace = True)
+    # df.drop(columns=['curr'],inplace = True)
+    # df.drop(columns=['prev'],inplace = True)
+    # df.drop(columns=['difference'],inplace = True)
 
     df['pickups'] = np.select(conditions, choices)
-    df.drop(columns=['num_bikes_available'],inplace = True)
+    # df.drop(columns=['num_bikes_available'],inplace = True)
 
     # end = time.time()
     # print("pickups:", end - start)
@@ -82,9 +86,9 @@ def calculate_campus_rain(df):
 
     df['campus_rain'] = df['difference']
 
-    df.drop(columns=['curr'],inplace = True)
-    df.drop(columns=['prev'],inplace = True)
-    df.drop(columns=['difference'],inplace = True)
+    # df.drop(columns=['curr'],inplace = True)
+    # df.drop(columns=['prev'],inplace = True)
+    # df.drop(columns=['difference'],inplace = True)
 
     return df['campus_rain']
 
@@ -96,7 +100,8 @@ def pickups_graph(df, current_time):
     pickups_graph.set_title(f'Total Pickups by Station ({current_time})')
     pickups_graph.set_ylabel('Total Pickups')
     pickups_graph.set_xlabel('Station')
-    plt.savefig("pickups_graph.png")
+    # plt.savefig("../../hosting/graph/images/pickups_graph.png")
+    plt.savefig("./images/pickups_graph.png")
 
 def campus_rain_graph(df, current_time):
     df['campus_rain'] = calculate_campus_rain(df)
@@ -106,7 +111,8 @@ def campus_rain_graph(df, current_time):
     campus_rain_graph.figure.suptitle(f'Campus Rain by Hour ({current_time})')
     campus_rain_graph.set_ylabels('Campus Rain in Inches')
     campus_rain_graph.set_xlabels('Hours')
-    plt.savefig("campus_rain_graph.png")
+    # plt.savefig("../../hosting/graph/images/campus_rain_graph.png")
+    plt.savefig("./images/campus_rain_graph.png")
 
 def temp_graph(df, current_time):
     temp_mean = df.groupby('hours', as_index=False)['temp'].mean()
@@ -115,7 +121,8 @@ def temp_graph(df, current_time):
     temp_graph.figure.suptitle(f'Temperature by Hour ({current_time})')
     temp_graph.set_ylabels('Temperature in °F')
     temp_graph.set_xlabels('Hours')
-    plt.savefig("temp_graph.png")
+    # plt.savefig("../../hosting/graph/images/temp_graph.png")
+    plt.savefig("./images/temp_graph.png")
 
 def boulder_rain_graph(df, current_time):
     boulder_rain_mean = df.groupby('hours', as_index=False)['precipitation'].mean()
@@ -124,7 +131,8 @@ def boulder_rain_graph(df, current_time):
     boulder_rain_graph.figure.suptitle(f'Boulder Precipitation by Hour ({current_time})')
     boulder_rain_graph.set_ylabels('Boulder Precipitation in Inches')
     boulder_rain_graph.set_xlabels('Hours')
-    plt.savefig("boulder_rain_graph.png")
+    # plt.savefig("../../hosting/graph/images/boulder_rain_graph.png")
+    plt.savefig("./images/boulder_rain_graph.png")
 
 def wind_graph(df, current_time):
     wind_mean = df.groupby('hours', as_index=False)['wind_speed'].mean()
@@ -133,59 +141,128 @@ def wind_graph(df, current_time):
     wind_graph.figure.suptitle(f'Wind Speed by Hour ({current_time})')
     wind_graph.set_ylabels('Wind in MPH')
     wind_graph.set_xlabels('Hours')
-    plt.savefig("wind_graph.png")
+    # plt.savefig("../../hosting/graph/images/wind_graph.png")
+    plt.savefig("./images/wind_graph.png")
 
-def webhooks(df):
-    now = dt.datetime.now(local_timezone)
-    current_time = now.strftime('%Y-%m-%d')
+def webhooks(df, time):
 
-    df_filtered = df[df['dttime'].dt.strftime('%Y-%m-%d') == current_time]
-    df_filtered['hours'] = pd.to_datetime(df_filtered['dttime']).dt.hour
+    # d='2025-09-09 22:44:09' 
+    # date=pd.to_datetime(d)
+    # current_time = date.strftime('%Y-%m-%d')
+    df['hours'] = pd.to_datetime(df['dttime']).dt.hour
 
     # campus_rain_mean = df_filtered['campus_rain'].mean()
 
-    pickups_graph(df_filtered, current_time)
-    campus_rain_graph(df_filtered, current_time)
-    temp_graph(df_filtered, current_time)
-    boulder_rain_graph(df_filtered, current_time)
-    wind_graph(df_filtered, current_time)
-    print(df_filtered["campus_rain"].tail())
+    pickups_graph(df, time)
+    campus_rain_graph(df, time)
+    temp_graph(df, time)
+    boulder_rain_graph(df, time)
+    wind_graph(df, time)
 
     # plt.show()
     # payload = {
     #     file: "./pickups_graph.png",
     # }
 
-    weather = {
-        "description": "text in embed",
+
+    campus_rain = {
+        "description": "average of campus_rain by hour",
         # "payload" : pickups_graph.png,
-        "title": "embed title",
-        "color": 1127128
+        "title": "campus_rain",
+        "color": 1127128,
+        "image": {
+            "url": "attachment://campus_rain_graph.png"
         }
-    
-    total = {
-        "description": "text in embed",
-        "title": "embed title",
-        # "payload" : payload,
-        "color": 14177041
     }
+
+    boulder_rain = {
+        "description": "average of boulder_rain by hour",
+        # "payload" : pickups_graph.png,
+        "title": "boulder_rain",
+        "color": 1127128,
+        "image": {
+            "url": "attachment://boulder_rain_graph.png"
+        }
+    }
+
+    pickups = {
+        "description": "sum of pickups by station",
+        "title": "pickups",
+        "color": 14177041,
+        "image": {
+            "url": "attachment://pickups_graph.png"
+        }
+    }
+
+    temp = {
+        "description": "average of temp by hour",
+        # "payload" : pickups_graph.png,
+        "title": "temp",
+        "color": 1127128,
+        "image": {
+            "url": "attachment://temp_graph.png"
+        }
+    }
+
+    wind_speed = {
+        "description": "average of wind_sped by hour",
+        # "payload" : pickups_graph.png,
+        "title": "wind_speed",
+        "color": 1127128,
+        "image": {
+            "url": "attachment://wind_graph.png"
+        }
+    }
+
+    # will add this later will upload a new pick of dog daily
+    # basicall
+    # chat = {
+    #     "description": "hope you had a goated day",
+    #     # "payload" : pickups_graph.png,
+    #     "title": "Hello Josephone",
+    #     "color": 1127128,
+    #     "image": {
+    #         "url": "attachment://wind_graph.png"
+    #     }
+    # }
+
     
 
-    data = {
-        "content": "Data Backed Up",
+    payload = {
+        "content": f"Data Backed Up ({current_time})",
         "username": "Daily Updates",
         "embeds": [
-            weather,
-            total
+            pickups,
+            campus_rain,
+            boulder_rain,
+            temp,
+            wind_speed
             ],
     }
 
-    # result = requests.post(webhook_url, json=data)
-    # if 200 <= result.status_code < 300:
-    #     print(f"Webhook sent {result.status_code}")
-    # else:
-    #     print(f"Not sent with {result.status_code}, response:\n{result.json()}")
+    data = {
+        'payload_json': (None, json.dumps(payload), 'application/json'),
+        'file1': ('pickups_graph.png', open('pickups_graph.png', 'rb'), 'image/png'),
+        'file2': ('campus_rain_graph.png', open('campus_rain_graph.png', 'rb'), 'image/png'),
+        'file3': ('boulder_rain_graph.png', open('boulder_rain_graph.png', 'rb'), 'image/png'),
+        'file4': ('temp_graph.png', open('temp_graph.png', 'rb'), 'image/png'),
+        'file5': ('wind_graph.png', open('wind_graph.png', 'rb'), 'image/png')
 
+    }
+    
+
+    result = requests.post(webhook_url, files=data)
+    if 200 <= result.status_code < 300:
+        print(f"Webhook sent {result.status_code}")
+    else:
+        print(f"Not sent with {result.status_code}, response:\n{result.json()}")
+
+def backup_data():
+    src = '../../data/bike_logs.db'
+    dst = '../../data/bikeLogs_backup.db'
+
+    shutil.copy(src, dst)
 
 if __name__ == '__main__':
-    webhooks(df_webhook)
+    webhooks(df_filtered, current_time)
+    # backup_data()

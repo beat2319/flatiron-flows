@@ -1,0 +1,1 @@
+* * * * * root app/run_python_job.sh >> /var/log/cron.log 2>&1

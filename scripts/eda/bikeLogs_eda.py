@@ -6,32 +6,48 @@ import time
 import timeit
 import pytz
 
-conn = sqlite3.connect('../data/bikeLogs_backup.db')
+conn = sqlite3.connect('../../data/bike_logs.db')
 
 query = "SELECT * FROM bike_logs"
 
+df_raw = pd.read_sql(query, conn)
+
 df_eda = pd.DataFrame({
     'station_id':pd.Series([], dtype = 'object'), 
-    'num_bikes_available':pd.Series([], dtype = 'object'),  
+    'num_bikes_available':pd.Series([], dtype = 'object'),
     'temp':pd.Series([], dtype = 'object'),  
     'wind_speed':pd.Series([], dtype = 'object'),  
     'campus_rain':pd.Series([], dtype = 'object'),
     'precipitation': pd.Series([], dtype = 'object'),
     'dttime':pd.Series([], dtype = 'object'),
+
     'date_time':pd.Series([], dtype = 'object'),
-    'date':pd.Series([], dtype = 'object'), 
-    'time':pd.Series([], dtype = 'object'), 
+    'day_of_week':pd.Series([], dtype = 'object'),
+    'calculated_precipitation':pd.Series([], dtype = 'object'),
+    'is_precipitation':pd.Series([], dtype = 'object'),
 })
 
-df_eda = pd.read_sql(query, conn)
-
-# filling missing is_semester and is_weekend values with proper values
-# precipitation and bikes_available set to 0 for any null values 
-#station_id|num_bikes_available|temp|wind_speed|campus_rain|precipitation|dttime
-
+df_eda = df_raw
 # converting datatypes
-df_eda['num_bikes_available'] = df_eda['num_bikes_available'].astype(int)
-df_eda['dttime'] = pd.to_datetime(df_eda.dttime, format='%y%m%d%H%M%S')
+# df_eda['num_bikes_available'] = df_eda['num_bikes_available'].astype(int)
+
+def convert_datetime(df):
+    df['dttime'] = pd.to_datetime(df_eda['dttime'])  
+    local_timezone = pytz.timezone('America/Denver')
+    df['dttime'] = pd.to_datetime(df['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
+
+    df['date_time'] = df['dttime'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    df['date_time'] = pd.to_datetime(df['date_time'])
+
+    df['day_of_week'] = df['date_time'].dt.day_name()
+
+    df.drop(columns=['dttime'],inplace = True)
+    return (df['date_time'], df['day_of_week'])
+
+# df_eda['curr_time'] = df_eda['dttime'].total_seconds()
+# df_eda['prev_time'] = df_eda['curr_time'].shift(fill_value = 0).astype(int)
+# df_eda['result_time'] = df_eda['curr_time'] - df_eda['prev_time']
+
 
 
 # df_raw['converted_date_time'] = df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
@@ -40,27 +56,11 @@ df_eda['dttime'] = pd.to_datetime(df_eda.dttime, format='%y%m%d%H%M%S')
 # df_eda = df_eda.sort_values(by=['date','time'], ascending=[False, False])
 
 
-def calculate_release(df):
-    # release_df = pd.DataFrame({
-    #     'station_id':pd.Series([], dtype = 'object'),
-    #     'date':pd.Series([], dtype = 'object'), 
-    #     'time':pd.Series([], dtype = 'object'), 
-    #     'day_of_week':pd.Series([], dtype = 'object'), 
-    #     'output':pd.Series([], dtype = 'object'), 
-    # })
-    # start = timeit.timeit()
-    local_timezone = pytz.timezone('America/Denver')
-    df['date_time'] = pd.to_datetime(df['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
 
-    # local_timezone = pytz.timezone('America/Denver')
+def calculate_release(df):
     df['time'] = df['date_time'].dt.strftime("%H:%M:%S")
     df['date'] = df['date_time'].dt.strftime('%Y-%m-%d')
     df['date']= pd.to_datetime(df['date'])
-
-    df['day_of_week'] = df['date'].dt.day_name()
-    
-    # end = timeit.timeit()
-    # print(end - start)
 
     # 2D and 1D arrays to organize specific times and days
     mwf_time =np.array([['08:50:00', '08:55:00'],
@@ -112,25 +112,19 @@ def calculate_release(df):
             ((df['time'] >= tt_time[6][0]) & (df['time'] <= tt_time[6][1])))),
     ]
     choices = [
-        True
+        1
     ]
-    df['is_release'] = np.select(conditions, choices, default=False)
+    df['is_release'] = np.select(conditions, choices, default=0)
 
-    df.drop(columns=['day_of_week'],inplace = True)
     df.drop(columns=['date'],inplace = True)
     df.drop(columns=['time'],inplace = True)
-    # end = time.time()
-    # print("release:", end - start)
     return df['is_release']
 
 def calculate_pickups(df):
-    #start = time.time()
+    df['num_bikes_available'] = df['num_bikes_available'].astype(int)
 
-    df['curr'] = df['bikes_available']
-
-    #index = pickups_df['station_id'].nunique()
-    #pickups_df['prev'] = pickups_df['bikes_available'].shift(periods = index, fill_value = 0)
-    df['prev'] = df.groupby('station_id')['bikes_available'].shift(fill_value = 0)
+    df['curr'] = df['num_bikes_available']
+    df['prev'] = df.groupby('station_id')['num_bikes_available'].shift(fill_value = 0)
 
     df['difference'] = df['prev'] - df['curr']
     df[['difference']].infer_objects().fillna(0)
@@ -144,36 +138,35 @@ def calculate_pickups(df):
         0, 
         df['difference']
     ]
+
+    df['pickups'] = np.select(conditions, choices)
+    
     df.drop(columns=['curr'],inplace = True)
     df.drop(columns=['prev'],inplace = True)
     df.drop(columns=['difference'],inplace = True)
-
-    df['pickups'] = np.select(conditions, choices)
-
-    # end = time.time()
-    # print("pickups:", end - start)
+    df.drop(columns=['num_bikes_available'],inplace = True)
     return df['pickups']
 
 # may want to shift by 5 as value changes every 5 min
 # also should make sure that it resets every day, just by only returning 0 if value is negative 
 # otherwise good i think
 def calculate_precipitation(df):
-    df['curr'] = df['ss_precipitation']
-    df['prev'] = df.groupby('station_id')['ss_precipitation'].shift(periods=5, fill_value = 0)
-    df['difference'] = df['prev'] - df['curr']
+    df['curr'] = df['campus_rain']
+    df['prev'] = df.groupby('station_id')['campus_rain'].shift(periods=5, fill_value = 0)
+    df['difference'] = df['curr'] - df['prev']
     
     conditions_1 = [
         (df['temp'] <= 32),
         (df['temp'] > 32)
     ]
     choices_1 = [
-        df['fw_precipitation'], 
+        df['precipitation'], 
         df['difference']
     ]
-    df['precipitation'] = np.select(conditions_1, choices_1)
+    df['calculated_precipitation'] = np.select(conditions_1, choices_1)
 
     conditions_2 = [
-        (df['precipitation'] > 0)
+        (df['calculated_precipitation'] > 0)
     ]
     choices_2 = [
         1
@@ -183,16 +176,19 @@ def calculate_precipitation(df):
     df.drop(columns=['curr'],inplace = True)
     df.drop(columns=['prev'],inplace = True)
     df.drop(columns=['difference'],inplace = True)
+    df.drop(columns=['calculated_precipitation'],inplace = True)
+    df.drop(columns=['campus_rain'],inplace = True)
     df.drop(columns=['precipitation'],inplace = True)
-
     return df['is_precipitation']
 
 
 if __name__ == '__main__':
-    # print(df_bikes.head(20))
-    print(df_eda.head(10))
-    print(calculate_release(df_eda))
+    convert_datetime(df_eda)
+    calculate_release(df_eda)
+    calculate_precipitation(df_eda)
+    calculate_pickups(df_eda)
 
-    #print(df_eda)
+    print(f"\n release_period: \n {df_eda.query('is_release == 1')}")
+    print(f"\n precipitation: \n {df_eda.query('is_precipitation == 1')}")
     # test_two = calculate_release()
     # print(test_two.head(10))
