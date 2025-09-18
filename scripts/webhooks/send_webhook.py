@@ -13,7 +13,7 @@ import seaborn as sns
 import shutil
 
 load_dotenv('.env')
-webhook_url = os.getenv('BIKELOGS_WEBHOOK')
+webhook_url = os.getenv('LOGGING_WEBHOOK')
 
 conn = sqlite3.connect('./data/bike_logs.db')
 

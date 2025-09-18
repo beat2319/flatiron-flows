@@ -17,7 +17,7 @@ bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
 
 #setting up discord webhook
 load_dotenv('.env')
-webhook_url = os.getenv('BIKELOGS_WEBHOOK')
+webhook_url = os.getenv('ERROR_WEBHOOK')
 
 # set as object to trick pandas to preserve datatype
 log_df = pd.DataFrame({
