@@ -15,7 +15,7 @@ import shutil
 load_dotenv('.env')
 webhook_url = os.getenv('BIKELOGS_WEBHOOK')
 
-conn = sqlite3.connect('../../data/bike_logs.db')
+conn = sqlite3.connect('./data/bike_logs.db')
 
 query = "SELECT * FROM bike_logs"
 
@@ -166,9 +166,9 @@ def webhooks(df, time):
 
 
     campus_rain = {
-        "description": "average of campus_rain by hour",
+        "description": "average of campus rain by hour",
         # "payload" : pickups_graph.png,
-        "title": "campus_rain",
+        "title": "Campus Rain",
         "color": 1127128,
         "image": {
             "url": "attachment://campus_rain_graph.png"
@@ -176,9 +176,9 @@ def webhooks(df, time):
     }
 
     boulder_rain = {
-        "description": "average of boulder_rain by hour",
+        "description": "average of boulder precipitation by hour",
         # "payload" : pickups_graph.png,
-        "title": "boulder_rain",
+        "title": "Boulder Precipitation",
         "color": 1127128,
         "image": {
             "url": "attachment://boulder_rain_graph.png"
@@ -187,7 +187,7 @@ def webhooks(df, time):
 
     pickups = {
         "description": "sum of pickups by station",
-        "title": "pickups",
+        "title": "Total Pickups",
         "color": 14177041,
         "image": {
             "url": "attachment://pickups_graph.png"
@@ -195,20 +195,20 @@ def webhooks(df, time):
     }
 
     temp = {
-        "description": "average of temp by hour",
+        "description": "average of temperature by hour",
         # "payload" : pickups_graph.png,
-        "title": "temp",
-        "color": 1127128,
+        "title": "Temperature",
+        "color": 16776960,
         "image": {
             "url": "attachment://temp_graph.png"
         }
     }
 
     wind_speed = {
-        "description": "average of wind_sped by hour",
+        "description": "average of wind speed by hour",
         # "payload" : pickups_graph.png,
-        "title": "wind_speed",
-        "color": 1127128,
+        "title": "Wind Speed",
+        "color": 16777215,
         "image": {
             "url": "attachment://wind_graph.png"
         }
@@ -242,11 +242,11 @@ def webhooks(df, time):
 
     data = {
         'payload_json': (None, json.dumps(payload), 'application/json'),
-        'file1': ('pickups_graph.png', open('pickups_graph.png', 'rb'), 'image/png'),
-        'file2': ('campus_rain_graph.png', open('campus_rain_graph.png', 'rb'), 'image/png'),
-        'file3': ('boulder_rain_graph.png', open('boulder_rain_graph.png', 'rb'), 'image/png'),
-        'file4': ('temp_graph.png', open('temp_graph.png', 'rb'), 'image/png'),
-        'file5': ('wind_graph.png', open('wind_graph.png', 'rb'), 'image/png')
+        'file1': ('pickups_graph.png', open('./images/pickups_graph.png', 'rb'), 'image/png'),
+        'file2': ('campus_rain_graph.png', open('./images/campus_rain_graph.png', 'rb'), 'image/png'),
+        'file3': ('boulder_rain_graph.png', open('./images/boulder_rain_graph.png', 'rb'), 'image/png'),
+        'file4': ('temp_graph.png', open('./images/temp_graph.png', 'rb'), 'image/png'),
+        'file5': ('wind_graph.png', open('./images/wind_graph.png', 'rb'), 'image/png')
 
     }
     
@@ -258,11 +258,11 @@ def webhooks(df, time):
         print(f"Not sent with {result.status_code}, response:\n{result.json()}")
 
 def backup_data():
-    src = '../../data/bike_logs.db'
-    dst = '../../data/bikeLogs_backup.db'
+    src = './data/bike_logs.db'
+    dst = './data/bikeLogs_backup.db'
 
     shutil.copy(src, dst)
 
 if __name__ == '__main__':
     webhooks(df_filtered, current_time)
-    # backup_data()
+    backup_data()
