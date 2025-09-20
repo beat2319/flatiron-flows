@@ -41,7 +41,7 @@ df_webhook['dttime'] = pd.to_datetime(df_webhook['dttime'].dt.tz_localize('UTC')
 # print(df_webhook['hours'])
 now = dt.datetime.now(local_timezone)
 current_time = now.strftime('%Y-%m-%d')
-df_filtered = df_webhook[df_webhook['dttime'].dt.strftime('%Y-%m-%d') == current_time]
+df_filtered = df_webhook.loc[df_webhook['dttime'].dt.strftime('%Y-%m-%d') == current_time].copy()
 
 
 def calculate_pickups(df):
@@ -54,8 +54,7 @@ def calculate_pickups(df):
     df['prev'] = df.groupby('station_id')['num_bikes_available'].shift(fill_value = 0)
 
     df['difference'] = df['prev'] - df['curr']
-    df[['difference']].infer_objects().fillna(0)
-    df['difference'].astype(int)
+    df['difference'] = df['difference'].infer_objects().fillna(0).astype(int)
 
     conditions = [
         (df['difference'] <= 0),
@@ -84,19 +83,19 @@ def calculate_campus_rain(df):
     df['prev'] = df.groupby('station_id')['campus_rain'].shift(periods=5, fill_value = 0)
     df['difference'] = df['curr'] - df['prev']
 
-    df['campus_rain'] = df['difference']
+    df['campus_rain_diff'] = df['difference']
 
     # df.drop(columns=['curr'],inplace = True)
     # df.drop(columns=['prev'],inplace = True)
     # df.drop(columns=['difference'],inplace = True)
 
-    return df['campus_rain']
+    return df['campus_rain_diff']
 
 def pickups_graph(df, current_time):
     df['pickups'] = calculate_pickups(df)
     pickups_total = df.groupby('station_id', as_index=False)['pickups'].sum()
     pickups_total['station_id'] = pickups_total['station_id'].str.replace('bcycle_boulder_', ' ')
-    pickups_graph = sns.barplot(data=pickups_total, x="station_id", y ="pickups", palette="Set2")
+    pickups_graph = sns.barplot(data=pickups_total, x="station_id", y ="pickups", hue="station_id", palette="Set2", legend=False)
     pickups_graph.set_title(f'Total Pickups by Station ({current_time})')
     pickups_graph.set_ylabel('Total Pickups')
     pickups_graph.set_xlabel('Station')
@@ -229,7 +228,7 @@ def webhooks(df, time):
     
 
     payload = {
-        "content": f"Data Backed Up ({current_time})",
+        "content": f"Data Backed Up ({time})",
         "username": "Daily Updates",
         "embeds": [
             pickups,
