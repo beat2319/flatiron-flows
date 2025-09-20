@@ -1,4 +1,4 @@
-name: bikelog_env
+name: webhook_env
 channels:
   - defaults
 dependencies:
