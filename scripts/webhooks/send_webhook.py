@@ -15,7 +15,7 @@ import shutil
 load_dotenv('.env')
 webhook_url = os.getenv('LOGGING_WEBHOOK')
 
-conn = sqlite3.connect('./data/bike_logs.db')
+conn = sqlite3.connect('/app/data/bike_logs.db')
 
 query = "SELECT * FROM bike_logs"
 
@@ -100,7 +100,7 @@ def pickups_graph(df, current_time):
     pickups_graph.set_ylabel('Total Pickups')
     pickups_graph.set_xlabel('Station')
     # plt.savefig("../../hosting/graph/images/pickups_graph.png")
-    plt.savefig("./images/pickups_graph.png")
+    plt.savefig("/app/images/pickups_graph.png")
 
 def campus_rain_graph(df, current_time):
     df['campus_rain'] = calculate_campus_rain(df)
@@ -111,7 +111,7 @@ def campus_rain_graph(df, current_time):
     campus_rain_graph.set_ylabels('Campus Rain in Inches')
     campus_rain_graph.set_xlabels('Hours')
     # plt.savefig("../../hosting/graph/images/campus_rain_graph.png")
-    plt.savefig("./images/campus_rain_graph.png")
+    plt.savefig("/app/images/campus_rain_graph.png")
 
 def temp_graph(df, current_time):
     temp_mean = df.groupby('hours', as_index=False)['temp'].mean()
@@ -121,7 +121,7 @@ def temp_graph(df, current_time):
     temp_graph.set_ylabels('Temperature in °F')
     temp_graph.set_xlabels('Hours')
     # plt.savefig("../../hosting/graph/images/temp_graph.png")
-    plt.savefig("./images/temp_graph.png")
+    plt.savefig("/app/images/temp_graph.png")
 
 def boulder_rain_graph(df, current_time):
     boulder_rain_mean = df.groupby('hours', as_index=False)['precipitation'].mean()
@@ -131,7 +131,7 @@ def boulder_rain_graph(df, current_time):
     boulder_rain_graph.set_ylabels('Boulder Precipitation in Inches')
     boulder_rain_graph.set_xlabels('Hours')
     # plt.savefig("../../hosting/graph/images/boulder_rain_graph.png")
-    plt.savefig("./images/boulder_rain_graph.png")
+    plt.savefig("/app/images/boulder_rain_graph.png")
 
 def wind_graph(df, current_time):
     wind_mean = df.groupby('hours', as_index=False)['wind_speed'].mean()
@@ -141,7 +141,7 @@ def wind_graph(df, current_time):
     wind_graph.set_ylabels('Wind in MPH')
     wind_graph.set_xlabels('Hours')
     # plt.savefig("../../hosting/graph/images/wind_graph.png")
-    plt.savefig("./images/wind_graph.png")
+    plt.savefig("/app/images/wind_graph.png")
 
 def webhooks(df, time):
 
@@ -241,11 +241,11 @@ def webhooks(df, time):
 
     data = {
         'payload_json': (None, json.dumps(payload), 'application/json'),
-        'file1': ('pickups_graph.png', open('./images/pickups_graph.png', 'rb'), 'image/png'),
-        'file2': ('campus_rain_graph.png', open('./images/campus_rain_graph.png', 'rb'), 'image/png'),
-        'file3': ('boulder_rain_graph.png', open('./images/boulder_rain_graph.png', 'rb'), 'image/png'),
-        'file4': ('temp_graph.png', open('./images/temp_graph.png', 'rb'), 'image/png'),
-        'file5': ('wind_graph.png', open('./images/wind_graph.png', 'rb'), 'image/png')
+        'file1': ('pickups_graph.png', open('/app/images/pickups_graph.png', 'rb'), 'image/png'),
+        'file2': ('campus_rain_graph.png', open('/app/images/campus_rain_graph.png', 'rb'), 'image/png'),
+        'file3': ('boulder_rain_graph.png', open('/app/images/boulder_rain_graph.png', 'rb'), 'image/png'),
+        'file4': ('temp_graph.png', open('/app/images/temp_graph.png', 'rb'), 'image/png'),
+        'file5': ('wind_graph.png', open('/app/images/wind_graph.png', 'rb'), 'image/png')
 
     }
     
@@ -257,8 +257,8 @@ def webhooks(df, time):
         print(f"Not sent with {result.status_code}, response:\n{result.json()}")
 
 def backup_data():
-    src = './data/bike_logs.db'
-    dst = './data/bikeLogs_backup.db'
+    src = '/app/data/bike_logs.db'
+    dst = '/app/data/bikeLogs_backup.db'
 
     shutil.copy(src, dst)
 

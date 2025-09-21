@@ -1,5 +1,5 @@
 services:
-  db:
+  send_webhook:
     image: webhook_env:latest
     env_file: 
       - .env
