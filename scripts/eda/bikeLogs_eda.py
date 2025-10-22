@@ -5,8 +5,9 @@ import datetime as dt
 import time
 import timeit
 import pytz
+from sqlalchemy import create_engine, text
 
-conn = sqlite3.connect('../../data/bike_logs.db')
+conn = sqlite3.connect('../../data/bikeLogs_backup.db')
 
 query = "SELECT * FROM bike_logs"
 
@@ -188,7 +189,12 @@ if __name__ == '__main__':
     calculate_precipitation(df_eda)
     calculate_pickups(df_eda)
 
-    print(f"\n release_period: \n {df_eda.query('is_release == 1')}")
-    print(f"\n precipitation: \n {df_eda.query('is_precipitation == 1')}")
+    # connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
+
+    # df_eda.to_sql('bike_logs',
+    #            con=connTwo)
+
+    # print(f"\n release_period: \n {df_eda.query('is_release == 1')}")
+    # print(f"\n precipitation: \n {df_eda.query('is_precipitation == 1')}")
     # test_two = calculate_release()
     # print(test_two.head(10))
