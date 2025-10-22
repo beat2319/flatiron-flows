@@ -21,11 +21,12 @@ df_eda = pd.DataFrame({
     'campus_rain':pd.Series([], dtype = 'object'),
     'precipitation': pd.Series([], dtype = 'object'),
     'dttime':pd.Series([], dtype = 'object'),
+
     'modFive_min':pd.Series([], dtype = 'object'),
+    'min':pd.Series([], dtype = 'object'),
 
     'date_time':pd.Series([], dtype = 'object'),
     'day_of_week':pd.Series([], dtype = 'object'),
-    'min':pd.Series([], dtype = 'object'),
     'calculated_precipitation':pd.Series([], dtype = 'object'),
     'is_precipitation':pd.Series([], dtype = 'object'),
 })
@@ -66,6 +67,9 @@ def convert_datetime(df):
 def modFive_calc(df):
     val = df[df['modFive_min'] == 0].index[0]
     df_drop_index = df.index[:val]
+
+    df.drop(columns=['modFive_min'],inplace = True)
+    df.drop(columns=['min'],inplace = True)
     return df_drop_index
 
 def remove_rows(df):

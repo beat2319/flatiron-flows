@@ -22,6 +22,9 @@ df_eda = pd.DataFrame({
     'precipitation': pd.Series([], dtype = 'object'),
     'dttime':pd.Series([], dtype = 'object'),
 
+    'modFive_min':pd.Series([], dtype = 'object'),
+    'min':pd.Series([], dtype = 'object'),
+
     'date_time':pd.Series([], dtype = 'object'),
     'day_of_week':pd.Series([], dtype = 'object'),
     'calculated_precipitation':pd.Series([], dtype = 'object'),
@@ -40,6 +43,9 @@ def convert_datetime(df):
     df['date_time'] = df['dttime'].dt.strftime('%Y-%m-%d %H:%M:%S')
     df['date_time'] = pd.to_datetime(df['date_time'])
 
+    df['min'] = df['date_time'].dt.minute
+    df['modFive_min'] = df['min'].mod(5)
+
     df['day_of_week'] = df['date_time'].dt.day_name()
 
     df.drop(columns=['dttime'],inplace = True)
@@ -49,6 +55,16 @@ def convert_datetime(df):
 # df_eda['prev_time'] = df_eda['curr_time'].shift(fill_value = 0).astype(int)
 # df_eda['result_time'] = df_eda['curr_time'] - df_eda['prev_time']
 
+def modFive_calc(df):
+    val = df[df['modFive_min'] == 0].index[0]
+    df_drop_index = df.index[:val]
+
+    df.drop(columns=['modFive_min'],inplace = True)
+    df.drop(columns=['min'],inplace = True)
+    return df_drop_index
+
+def remove_rows(df):
+    df.drop(modFive_calc(df), inplace = True)
 
 
 # df_raw['converted_date_time'] = df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
@@ -151,6 +167,7 @@ def calculate_pickups(df):
 # may want to shift by 5 as value changes every 5 min
 # also should make sure that it resets every day, just by only returning 0 if value is negative 
 # otherwise good i think
+# maybe not shifting my 5 with respect to pickups by rather with either min or mod5
 def calculate_precipitation(df):
     df['curr'] = df['campus_rain']
     df['prev'] = df.groupby('station_id')['campus_rain'].shift(periods=5, fill_value = 0)
@@ -185,14 +202,15 @@ def calculate_precipitation(df):
 
 if __name__ == '__main__':
     convert_datetime(df_eda)
+    remove_rows(df_eda)
     calculate_release(df_eda)
     calculate_precipitation(df_eda)
     calculate_pickups(df_eda)
 
-    # connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
+    
+    connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
 
-    # df_eda.to_sql('bike_logs',
-    #            con=connTwo)
+    df_eda.to_sql('bike_logs', con=connTwo)
 
     # print(f"\n release_period: \n {df_eda.query('is_release == 1')}")
     # print(f"\n precipitation: \n {df_eda.query('is_precipitation == 1')}")
