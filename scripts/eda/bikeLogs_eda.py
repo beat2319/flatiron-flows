@@ -6,6 +6,7 @@ import time
 import timeit
 import pytz
 from sqlalchemy import create_engine, text
+from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
 conn = sqlite3.connect('../../data/bikeLogs_backup.db')
 
@@ -27,6 +28,7 @@ df_eda = pd.DataFrame({
 
     'date_time':pd.Series([], dtype = 'object'),
     'day_of_week':pd.Series([], dtype = 'object'),
+    'is_holiday':pd.Series([], dtype = 'object'),
     'calculated_precipitation':pd.Series([], dtype = 'object'),
     'is_precipitation':pd.Series([], dtype = 'object'),
 })
@@ -132,8 +134,6 @@ def calculate_release(df):
         1
     ]
     df['is_release'] = np.select(conditions, choices, default=0)
-
-    df.drop(columns=['date'],inplace = True)
     df.drop(columns=['time'],inplace = True)
     return df['is_release']
 
@@ -199,6 +199,27 @@ def calculate_precipitation(df):
     df.drop(columns=['precipitation'],inplace = True)
     return df['is_precipitation']
 
+def calculate_holiday(df):
+    start_index = df['date'].index[0]
+    end_index = df['date'].index[-1]
+
+    start = df['date'].loc[start_index]
+    end = df['date'].loc[end_index]
+
+    cal = calendar()
+    holidays = cal.holidays(start, end)
+    df['is_holiday'] = df['date'].isin(holidays)
+    df.drop(columns=['date'],inplace = True)
+
+    conditions_1 = [
+        (df['is_holiday'] == 'True'),
+    ]
+    choices_1 = [
+        1
+    ]
+    df['is_holiday'] = np.select(conditions_1, choices_1, default=0) 
+    return df['is_holiday']
+
 
 if __name__ == '__main__':
     convert_datetime(df_eda)
@@ -206,11 +227,14 @@ if __name__ == '__main__':
     calculate_release(df_eda)
     calculate_precipitation(df_eda)
     calculate_pickups(df_eda)
+    calculate_holiday(df_eda)
+
+    print(df_eda.head())
 
     
-    connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
+    # connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
 
-    df_eda.to_sql('bike_logs', con=connTwo)
+    # df_eda.to_sql('bike_logs', con=connTwo)
 
     # print(f"\n release_period: \n {df_eda.query('is_release == 1')}")
     # print(f"\n precipitation: \n {df_eda.query('is_precipitation == 1')}")
