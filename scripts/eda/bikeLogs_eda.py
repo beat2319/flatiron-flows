@@ -31,6 +31,8 @@ df_eda = pd.DataFrame({
     'is_holiday':pd.Series([], dtype = 'object'),
     'calculated_precipitation':pd.Series([], dtype = 'object'),
     'is_precipitation':pd.Series([], dtype = 'object'),
+
+    'result':pd.Series([], dtype = 'object'),
 })
 
 df_eda = df_raw
@@ -61,8 +63,8 @@ def modFive_calc(df):
     val = df[df['modFive_min'] == 0].index[0]
     df_drop_index = df.index[:val]
 
-    df.drop(columns=['modFive_min'],inplace = True)
-    df.drop(columns=['min'],inplace = True)
+    # df.drop(columns=['modFive_min'],inplace = True)
+    # df.drop(columns=['min'],inplace = True)
     return df_drop_index
 
 def remove_rows(df):
@@ -220,6 +222,19 @@ def calculate_holiday(df):
     df['is_holiday'] = np.select(conditions_1, choices_1, default=0) 
     return df['is_holiday']
 
+def hour_groupings(df):
+    df['date_time'] = pd.to_datetime(df['date_time'],  format='%d%b%Y:%H:%M:%S')
+    new_df = df.groupby(['station_id', pd.Grouper(key="date_time", freq="1h")])['pickups'].sum()
+    #  = df.groupby(['station_id', pd.Grouper(key="date_time", freq="1h")])['temp'].mean()
+    
+
+    # df.groupby(['modFive_min'])['pickups'].sum()
+    # df.drop(columns=['min'],inplace = True)
+
+    return(new_df)
+    
+    
+
 
 if __name__ == '__main__':
     convert_datetime(df_eda)
@@ -228,8 +243,9 @@ if __name__ == '__main__':
     calculate_precipitation(df_eda)
     calculate_pickups(df_eda)
     calculate_holiday(df_eda)
+    print(hour_groupings(df_eda).tail(20))
 
-    print(df_eda.head())
+    print(df_eda.head(40))
 
     
     # connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
