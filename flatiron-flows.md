@@ -2,7 +2,7 @@
 ## Project Status
  - **Goal:** Forecast 5-minute bike pickup demand for CU Campus Bike share
 - **Current Blocker:** Finalizing data analysis and defining model architecture 
-- **Core Problem:** Data is highly zero-inflated (75% + are zeros) and non linear due to "OOS" stations 
+- **Core Problem:** Data is highly zero-inflated (75% + are zeros) and non linear due to "OOS" stations and low demand
 - **Solution:** Feature Engineering `(log_min_availability)` as a context feature and a LSTM with an Embedding layer to handle station specific quirks 
 - **Next Step:** Implement the data pipeline to create sequences and train the baseline LSTM model
 ---
@@ -40,10 +40,51 @@
 	- Justifies time encoding, and is_release, everything else is trivial without more data
 - **Availability vs Pickups Plot**
 	- ![[faceted_wall_vs_floor.png]]
-	-  Each station has different availability and pickups, thus demands
-
-##
-## Model Architecture 
+	-  Each station has different availability and pickups, and thus demands
+---
+## Training Methodology 
+### Data Preparation & Sequencing
+- **Data Split: ** Chronological split ($80$ train / $20$ test) and  `Shuffle = False`
+- **Normalization: ** `Standard Scaler` = `((data - mean)/std)` and Scaler will only fit the training data
+- **Sequencing: **   Use sliding window `(create_input_output_sequences)` with `num_past_steps` = $6$ and `num_future_steps` = $1$
+	- *two* input & one output
+	- **`X_seq:`** `(samples 6,5)` array (6 steps, 5 features)
+	- **`X_id:`** `(samples, 1)` array (`station_int_id` for each sequence)
+	- **`y-target:`** `(samples, 1)` array (`log_pickups` value)
+### Model Architecture 
+- **Approach:** Pooled, Multi-Input Model
+	- A single LSTM will be trained on all stations, using an embedding layer to learn station specific "quirks"
+- **Core Model:** 2-layer LSTM stack combined with an embedding branch 
+- **1: Temporal Branch** 
+	- `lstm_1 = LSTM(256, return_sequences = True)(temporal_input)`
+	- `norm_1 = LayerNormalization()(lstm_1)`
+	- `drop_1 = Dropout(0.2)(norm_1)`
+	- `lstm_2 = LSTM(128)(drop_1)`
+	- `norm_2 = LayerNormalization()(lstm_2)`
+	- `lstm_output = Dropout(0.2)(norm_2)`
+- **2: Categorical Branch**
+	- `embedding = Embedding(input_dim=13, output_dim=4)(station_id)`
+	- `embedding_output = Flatten()(embeddign)`
+- **Combine**
+	- `combined = Concatenate()([lstm_output, embedding_output])`
+- **Output Head**
+	- `dense_out = Dense(16, activation='relu')(combined)`
+	- `output = Dense(3)`
+		- For 3 quantiles 0.05, 0.50, 0.95
+- **Final Model**
+	- `Model(inputs=[temporal_input, station_id_input], outputs=output`
+### Loss Function & Validation
+- **Loss Function and Quantile Loss**
+	- using the `multi_quantile_loss` function
+- **Optimizer:** 
+	- `Adam(learning_rate=0.0005`
+- **Validation:**
+	- Use `EarlyStopping` monitoring `val_loss`
+- **Training Call:**
+	- The model will be trained with both inputs 
+	- `model.fit(x=[X_seq_train, X_id_train], y=y_target_train`
+---
+## Apendix
 - Plot pickups by station
 	- this will determine LSTM vs RF
 - LSTM
