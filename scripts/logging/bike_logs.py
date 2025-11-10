@@ -168,13 +168,12 @@ def log_data(df):
     parse_status(df)
     parse_datetime(df)
     parse_precip(df)
-    conn = sqlite3.connect('/usr/src/app/data/bike_logs.db')
-    df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
+    # conn = sqlite3.connect('/usr/src/app/data/bike_logs.db')
+    # df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
 
 if __name__ == '__main__':
     
     log_data(log_df)
-
     # while True:
     #     schedule.run_pending()
     #     time.sleep(1)

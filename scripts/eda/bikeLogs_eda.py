@@ -1,258 +1,232 @@
 import sqlite3
 import pandas as pd
 import numpy as np
-import datetime as dt
-import time
-import timeit
 import pytz
-from sqlalchemy import create_engine, text
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
-conn = sqlite3.connect('../../data/bikeLogs_backup.db')
+def load_data(db_path, query):
+    with sqlite3.connect(db_path) as conn:
+        df = pd.read_sql(query, conn)
+    return df
+# conn = sqlite3.connect('../../data/bikeLogs_backup.db')
 
-query = "SELECT * FROM bike_logs"
+# query = "SELECT * FROM bike_logs"
 
-df_raw = pd.read_sql(query, conn)
+# df_raw = pd.read_sql(query, conn)
 
-df_eda = pd.DataFrame({
-    'station_id':pd.Series([], dtype = 'object'), 
-    'num_bikes_available':pd.Series([], dtype = 'object'),
-    'temp':pd.Series([], dtype = 'object'),  
-    'wind_speed':pd.Series([], dtype = 'object'),  
-    'campus_rain':pd.Series([], dtype = 'object'),
-    'precipitation': pd.Series([], dtype = 'object'),
-    'dttime':pd.Series([], dtype = 'object'),
-
-    'modFive_min':pd.Series([], dtype = 'object'),
-    'min':pd.Series([], dtype = 'object'),
-
-    'date_time':pd.Series([], dtype = 'object'),
-    'day_of_week':pd.Series([], dtype = 'object'),
-    'is_holiday':pd.Series([], dtype = 'object'),
-    'calculated_precipitation':pd.Series([], dtype = 'object'),
-    'is_precipitation':pd.Series([], dtype = 'object'),
-
-    'result':pd.Series([], dtype = 'object'),
-})
-
-df_eda = df_raw
-# converting datatypes
-# df_eda['num_bikes_available'] = df_eda['num_bikes_available'].astype(int)
-
-def convert_datetime(df):
-    df['dttime'] = pd.to_datetime(df_eda['dttime'])  
+def convert_datetime(df_in):
+    df = df_in.copy()
+    
+    df['dttime'] = pd.to_datetime(df['dttime'])
     local_timezone = pytz.timezone('America/Denver')
-    df['dttime'] = pd.to_datetime(df['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone))
 
-    df['date_time'] = df['dttime'].dt.strftime('%Y-%m-%d %H:%M:%S')
-    df['date_time'] = pd.to_datetime(df['date_time'])
-
+    df['date_time'] = df['dttime'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
+    df['date_time'] = pd.to_datetime(df['date_time'].dt.strftime('%Y-%m-%d %H:%M:%S'))
+    df['date'] = df['date_time'].dt.date
     df['min'] = df['date_time'].dt.minute
-    df['modFive_min'] = df['min'].mod(5)
-
+    # df['modFive_min'] = df['min'].mod(5)
     df['day_of_week'] = df['date_time'].dt.day_name()
 
-    df.drop(columns=['dttime'],inplace = True)
-    return (df['date_time'], df['day_of_week'])
+    df = df.drop(columns=['dttime', 'min'])
+    return df
 
-# df_eda['curr_time'] = df_eda['dttime'].total_seconds()
-# df_eda['prev_time'] = df_eda['curr_time'].shift(fill_value = 0).astype(int)
-# df_eda['result_time'] = df_eda['curr_time'] - df_eda['prev_time']
+# def filter_to_five_min_intervals(df_in):
+#     df = df_in[df_in['modFive_min'] == 0].copy()
+#     df = df.drop(columns=['modFive_min'])
+#     return df
 
-def modFive_calc(df):
-    val = df[df['modFive_min'] == 0].index[0]
-    df_drop_index = df.index[:val]
+def calculate_release(df_in):
+    df = df_in.copy()
 
-    # df.drop(columns=['modFive_min'],inplace = True)
-    # df.drop(columns=['min'],inplace = True)
-    return df_drop_index
-
-def remove_rows(df):
-    df.drop(modFive_calc(df), inplace = True)
-
-
-# df_raw['converted_date_time'] = df_raw['date_time'].dt.tz_localize('UTC').dt.tz_convert(local_timezone)
-# copy of raw cleaned data frame
-# df_eda = df_raw.copy()
-# df_eda = df_eda.sort_values(by=['date','time'], ascending=[False, False])
-
-
-
-def calculate_release(df):
-    df['time'] = df['date_time'].dt.strftime("%H:%M:%S")
-    df['date'] = df['date_time'].dt.strftime('%Y-%m-%d')
-    df['date']= pd.to_datetime(df['date'])
-
-    # 2D and 1D arrays to organize specific times and days
-    mwf_time =np.array([['08:50:00', '08:55:00'],
-                        ['09:55:00', '10:00:00'],
-                        ['11:00:00', '11:05:00'],
-                        ['12:05:00', '12:10:00'],
-                        ['13:10:00', '13:15:00'],
-                        ['14:15:00', '14:20:00'],
-                        ['15:20:00', '15:25:00'],
-                        ['16:25:00', '16:30:00'],
-                        ['17:30:00', '17:35:00'],
-                        ['18:35:00', '18:40:00']],  dtype=object)
-
-
-    tt_time = np.array([['09:15:00', '09:20:00'],
-                        ['10:45:00', '10:50:00'],
-                        ['12:15:00', '12:20:00'],
-                        ['13:45:00', '13:50:00'],
-                        ['15:15:00', '15:20:00'],
-                        ['16:45:00', '16:50:00'],
-                        ['18:15:00', '18:20:00']], dtype=object)
-
-    weekdays = np.array(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], dtype=object)
-
-    # going to do major work soon, need to clean up the np.select mess (with full respect to how quick it is)
-
-    conditions = [
-        (((df['day_of_week'] == weekdays[0]) | 
-          (df['day_of_week'] == weekdays[2]) | 
-          (df['day_of_week'] == weekdays[4])) & 
-            (((df['time'] >= mwf_time[0][0]) & (df['time'] <= mwf_time[0][1])) | 
-            ((df['time'] >= mwf_time[1][0]) & (df['time'] <= mwf_time[1][1])) | 
-            ((df['time'] >= mwf_time[2][0]) & (df['time'] <= mwf_time[2][1])) |
-            ((df['time'] >= mwf_time[3][0]) & (df['time'] <= mwf_time[3][1])) |
-            ((df['time'] >= mwf_time[4][0]) & (df['time'] <= mwf_time[4][1])) |
-            ((df['time'] >= mwf_time[5][0]) & (df['time'] <= mwf_time[5][1])) |
-            ((df['time'] >= mwf_time[6][0]) & (df['time'] <= mwf_time[6][1])) |
-            ((df['time'] >= mwf_time[7][0]) & (df['time'] <= mwf_time[7][1])) |
-            ((df['time'] >= mwf_time[8][0]) & (df['time'] <= mwf_time[8][1])) |
-            ((df['time'] >= mwf_time[9][0]) & (df['time'] <= mwf_time[9][1])))) |
-        (((df['day_of_week'] == weekdays[1]) | 
-          (df['day_of_week'] == weekdays[3])) & 
-            (((df['time'] >= tt_time[0][0]) & (df['time'] <= tt_time[0][1])) | 
-            ((df['time'] >= tt_time[1][0]) & (df['time'] <= tt_time[1][1])) | 
-            ((df['time'] >= tt_time[2][0]) & (df['time'] <= tt_time[2][1])) |
-            ((df['time'] >= tt_time[3][0]) & (df['time'] <= tt_time[3][1])) |
-            ((df['time'] >= tt_time[4][0]) & (df['time'] <= tt_time[4][1])) |
-            ((df['time'] >= tt_time[5][0]) & (df['time'] <= tt_time[5][1])) |
-            ((df['time'] >= tt_time[6][0]) & (df['time'] <= tt_time[6][1])))),
+    mwf_start_times = [
+        '08:50', '09:55', '11:00', '12:05', '13:10',
+        '14:15', '15:20', '16:25', '17:30', '18:35'
     ]
-    choices = [
-        1
-    ]
-    df['is_release'] = np.select(conditions, choices, default=0)
-    df.drop(columns=['time'],inplace = True)
-    return df['is_release']
-
-def calculate_pickups(df):
-    df['num_bikes_available'] = df['num_bikes_available'].astype(int)
-
-    df['curr'] = df['num_bikes_available']
-    df['prev'] = df.groupby('station_id')['num_bikes_available'].shift(fill_value = 0)
-
-    df['difference'] = df['prev'] - df['curr']
-    df[['difference']].infer_objects().fillna(0)
-    df['difference'].astype(int)
-
-    conditions = [
-        (df['difference'] <= 0),
-        (df['difference'] > 0)
-    ]
-    choices = [
-        0, 
-        df['difference']
-    ]
-
-    df['pickups'] = np.select(conditions, choices)
     
-    df.drop(columns=['curr'],inplace = True)
-    df.drop(columns=['prev'],inplace = True)
-    df.drop(columns=['difference'],inplace = True)
-    df.drop(columns=['num_bikes_available'],inplace = True)
-    return df['pickups']
+    tt_start_times = [
+        '09:15', '10:45', '12:15', '13:45',
+        '15:15', '16:45', '18:15'
+    ]
 
-# may want to shift by 5 as value changes every 5 min
-# also should make sure that it resets every day, just by only returning 0 if value is negative 
-# otherwise good i think
-# maybe not shifting my 5 with respect to pickups by rather with either min or mod5
-def calculate_precipitation(df):
-    df['curr'] = df['campus_rain']
-    df['prev'] = df.groupby('station_id')['campus_rain'].shift(periods=5, fill_value = 0)
-    df['difference'] = df['curr'] - df['prev']
+    df = df.set_index('date_time')
+
+    release_mask = pd.Series(False, index=df.index)
+
+    is_mwf = df['day_of_week'].isin(['Monday', 'Wednesday', 'Friday'])
+    is_tt = df['day_of_week'].isin(['Tuesday', 'Thursday'])
     
-    conditions_1 = [
-        (df['temp'] <= 32),
-        (df['temp'] > 32)
-    ]
-    choices_1 = [
-        df['precipitation'], 
-        df['difference']
-    ]
-    df['calculated_precipitation'] = np.select(conditions_1, choices_1)
+    time_str = df.index.strftime('%H:%M')
 
-    conditions_2 = [
-        (df['calculated_precipitation'] > 0)
-    ]
-    choices_2 = [
-        1
-    ]
-    df['is_precipitation'] = np.select(conditions_2, choices_2, default=0) 
+    is_mwf_time = pd.Series(time_str).isin(mwf_start_times).values
+    is_tt_time = pd.Series(time_str).isin(tt_start_times).values
+        
+    release_mask = (is_mwf & is_mwf_time) | (is_tt & is_tt_time)
+        
+    df['is_release'] = release_mask.astype(int)
+    
+    df = df.reset_index()
+    return df
 
-    df.drop(columns=['curr'],inplace = True)
-    df.drop(columns=['prev'],inplace = True)
-    df.drop(columns=['difference'],inplace = True)
-    df.drop(columns=['calculated_precipitation'],inplace = True)
-    df.drop(columns=['campus_rain'],inplace = True)
-    df.drop(columns=['precipitation'],inplace = True)
-    return df['is_precipitation']
+def calculate_pickups(df_in):
+    df = df_in.copy()
 
-def calculate_holiday(df):
-    start_index = df['date'].index[0]
-    end_index = df['date'].index[-1]
+    df['num_bikes_available'] = pd.to_numeric(df['num_bikes_available'])
 
-    start = df['date'].loc[start_index]
-    end = df['date'].loc[end_index]
+    df = df.sort_values(by=['station_id', 'date_time'])
+
+    df['prev_bikes'] = df.groupby('station_id')['num_bikes_available'].shift(fill_value=np.nan)
+
+    df['difference'] = df['prev_bikes'] - df['num_bikes_available']
+
+    df['pickups'] = df['difference'].clip(lower=0).fillna(0).astype(int)
+
+    df = df.drop(columns=['prev_bikes', 'difference'])
+    return df
+
+def calculate_avaliablity(df_in):
+    df = df_in.copy()
+
+    df['num_bikes_available'] = pd.to_numeric(df['num_bikes_available'])
+
+    df = df.sort_values(by=['station_id', 'date_time'])
+
+    df['num_bikes_available_mean'] = pd.mean(df['num_bikes_available'])
+    df['num_bikes_available_min']
+
+
+def calculate_precipitation(df_in):
+    df = df_in.copy()
+
+    df = df.sort_values(by=['station_id', 'date_time'])
+    
+    df['prev_rain'] = df.groupby('station_id')['campus_rain'].shift(periods=1, fill_value=0)
+    df['rain_diff'] = df['campus_rain'] - df['prev_rain']
+
+    df['calculated_precipitation'] = np.where(
+        df['temp'] <= 32,
+        df['precipitation'],
+        df['rain_diff']
+    )
+    
+    df['is_precipitation'] = (df['calculated_precipitation'] > 0).astype(int)
+
+    df = df.drop(columns=['prev_rain', 'rain_diff', 'calculated_precipitation', 
+                          'campus_rain', 'precipitation'])
+    return df
+
+def calculate_holiday(df_in):
+    df = df_in.copy()
+
+    start_date = df['date'].min()
+    end_date = df['date'].max()
 
     cal = calendar()
-    holidays = cal.holidays(start, end)
-    df['is_holiday'] = df['date'].isin(holidays)
-    df.drop(columns=['date'],inplace = True)
+    holidays = cal.holidays(start_date, end_date)
 
-    conditions_1 = [
-        (df['is_holiday'] == 'True'),
-    ]
-    choices_1 = [
-        1
-    ]
-    df['is_holiday'] = np.select(conditions_1, choices_1, default=0) 
-    return df['is_holiday']
+    df['is_holiday'] = df['date'].isin(holidays).astype(int)
+    
+    df = df.drop(columns=['date'])
+    return df
 
-def hour_groupings(df):
-    df['date_time'] = pd.to_datetime(df['date_time'],  format='%d%b%Y:%H:%M:%S')
-    new_df = df.groupby(['station_id', pd.Grouper(key="date_time", freq="1h")])['pickups'].sum()
-    #  = df.groupby(['station_id', pd.Grouper(key="date_time", freq="1h")])['temp'].mean()
+def group_by_hour(df_in):
+    df = df_in.copy()
+
+    df['temp'] = pd.to_numeric(df['temp'], errors='coerce')
+
+    hourly_df = df.groupby(['station_id', pd.Grouper(key="date_time", freq="1h")]).agg(
+        pickups =('pickups', 'sum'),
+        is_release =('is_release', 'max'), 
+        is_precipitation =('is_precipitation', 'max'),
+        is_holiday = ('is_holiday', 'max'), 
+        day_of_week = ('day_of_week', 'first'), 
+        temp = ('temp', 'mean'),
+        wind_speed = ('wind_speed', 'mean')
+    )
+
+    hourly_df = hourly_df.reset_index()
+    return hourly_df
+
+def resample_to_five_min(df_in):
+    df = df_in.copy()
+    
+    # aggregation_rules = {
+    #     'station_id': 'first',
+    #     'day_of_week': 'first',
+
+    #     'pickups': 'sum', 
+
+    #     'num_bikes_available': ['mean', 'min'], 
+
+    #     'campus_rain': 'last', 
+    #     'precipitation': 'last',
+    #     'temp': 'last', 
+
+    #     'wind_speed': 'mean', 
+    #     'is_release': 'max',  
+    #     'is_holiday': 'max'
+    # }
+    
+    df_5min = df.groupby(['station_id', pd.Grouper(key="date_time", freq="5min")]).agg(
+        station_id = ('station_id', 'first'),
+        pickups = ('pickups', 'sum'),
+        is_release =('is_release', 'max'), 
+        precipitation =('precipitation', 'max'),
+        campus_rain =('campus_rain', 'max'),
+        bikes_avaliable_min = ('num_bikes_available', 'min'),
+        bikes_avaliable_mean = ('num_bikes_available', 'mean'),
+        is_holiday = ('is_holiday', 'max'), 
+        day_of_week = ('day_of_week', 'first'), 
+        temp = ('temp', 'mean'),
+        wind_speed = ('wind_speed', 'mean')
+    )
+    # new_cols = [
+    #     col[0] if col[1] in ['first', 'last']  
+    #     else f"{col[0]}_{col[1]}"               
+    #     for col in df_5min.columns.values
+    # ]
+
+    # df_5min = df_5min.rename(columns={
+    #     'pickups_sum': 'pickups',
+    #     'is_release_max': 'is_release',
+    #     'is_holiday_max': 'is_holiday',
+    # })
+
+    # df_5min.columns = new_cols
+    
+    if 'station_id' in df_5min.columns:
+        df_5min = df_5min.drop(columns=['station_id'])
+    
+    return df_5min.reset_index()
+
+def main():
+    DB_PATH = '../../data/db/bikeLogs_backup.db'
+    QUERY = "SELECT * FROM bike_logs"
+    
+    df = load_data(DB_PATH, QUERY)
     
 
-    # df.groupby(['modFive_min'])['pickups'].sum()
-    # df.drop(columns=['min'],inplace = True)
+    df_1min = (df
+        .pipe(convert_datetime)  
+        .pipe(calculate_release)
+        .pipe(calculate_pickups) 
+        .pipe(calculate_holiday)
+    )
 
-    return(new_df)
-    
-    
 
+    df_5min = df_1min.pipe(resample_to_five_min)
+
+    df_processed = df_5min.pipe(calculate_precipitation)
+
+    df_hourly = group_by_hour(df_processed)
+
+    print("\n--- 5-minute ---")
+    print(df_processed.tail(50))
+    
+    print("\n--- Hourly  ---")
+    print(df_hourly.head(20))
+
+    with sqlite3.connect('../../data/db/bikeLogs_1hr.db') as conn:
+        df_hourly.to_sql('bike_logs', con=conn, if_exists='replace', index=False)
 
 if __name__ == '__main__':
-    convert_datetime(df_eda)
-    remove_rows(df_eda)
-    calculate_release(df_eda)
-    calculate_precipitation(df_eda)
-    calculate_pickups(df_eda)
-    calculate_holiday(df_eda)
-    print(hour_groupings(df_eda).tail(20))
-
-    print(df_eda.head(40))
-
-    
-    # connTwo = sqlite3.connect('../../data/bikeLogs_eda.db')
-
-    # df_eda.to_sql('bike_logs', con=connTwo)
-
-    # print(f"\n release_period: \n {df_eda.query('is_release == 1')}")
-    # print(f"\n precipitation: \n {df_eda.query('is_precipitation == 1')}")
-    # test_two = calculate_release()
-    # print(test_two.head(10))
+    main()
