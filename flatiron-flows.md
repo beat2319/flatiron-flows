@@ -15,7 +15,7 @@
 ## Source
 [[Data Logging]]
 ### Response 
-- **`log_pickups:`** Log transformed 5-min total pickups `(log(pickups_sum +1))`
+- **`log_pickups:`** Log transformed 5-min total pickups `(log(pickups + 1))`
 ### Predictor
 - **`log_min_availability:`**  `(log(num_bikes_available_min + 1))`  identify 'OOS'
 - **`sin_time/cos_time:`** Cyclical features to encode time

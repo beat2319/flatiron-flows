@@ -83,6 +83,22 @@ def calculate_pickups(df_in):
     df = df.drop(columns=['prev_bikes', 'difference'])
     return df
 
+def calculate_dropoffs(df_in):
+    df = df_in.copy()
+
+    df['num_bikes_available'] = pd.to_numeric(df['num_bikes_available'])
+
+    df = df.sort_values(by=['station_id', 'date_time'])
+
+    df['prev_bikes'] = df.groupby('station_id')['num_bikes_available'].shift(fill_value=np.nan)
+
+    df['difference'] =  df['num_bikes_available'] - df['prev_bikes']
+
+    df['dropoffs'] = df['difference'].clip(lower=0).fillna(0).astype(int)
+
+    df = df.drop(columns=['prev_bikes', 'difference'])
+    return df
+
 def calculate_avaliablity(df_in):
     df = df_in.copy()
 
@@ -169,6 +185,7 @@ def resample_to_five_min(df_in):
     df_5min = df.groupby(['station_id', pd.Grouper(key="date_time", freq="5min")]).agg(
         station_id = ('station_id', 'first'),
         pickups = ('pickups', 'sum'),
+        dropoffs = ('dropoffs', 'sum')
         is_release =('is_release', 'max'), 
         precipitation =('precipitation', 'max'),
         campus_rain =('campus_rain', 'max'),
@@ -199,7 +216,7 @@ def resample_to_five_min(df_in):
     return df_5min.reset_index()
 
 def main():
-    DB_PATH = '../../data/db/bikeLogs_backup.db'
+    DB_PATH = '../../data/db/bike_logs.db'
     QUERY = "SELECT * FROM bike_logs"
     
     df = load_data(DB_PATH, QUERY)
@@ -210,6 +227,7 @@ def main():
         .pipe(calculate_release)
         .pipe(calculate_pickups) 
         .pipe(calculate_holiday)
+        .pipe(calculate_dropoffs)
     )
 
 
@@ -225,8 +243,8 @@ def main():
     print("\n--- Hourly  ---")
     print(df_hourly.head(20))
 
-    with sqlite3.connect('../../data/db/bikeLogs_1hr.db') as conn:
-        df_hourly.to_sql('bike_logs', con=conn, if_exists='replace', index=False)
+    with sqlite3.connect('../../data/db/bikeLogs_Month.db') as conn:
+        df_processed.to_sql('bike_logs', con=conn, if_exists='replace', index=False)
 
 if __name__ == '__main__':
     main()
