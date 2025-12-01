@@ -1,182 +1,180 @@
 import requests
-import numpy as np
 import pandas as pd
 import datetime as dt
-import time
+import numpy as np
 import sqlite3
-import lxml
-import pytz
-import logging as logger
+import logging
 import os
+import lxml # Kept this as it is required by read_html backend
 from dotenv import load_dotenv
 
-#boulder_weather = https://api.weather.gov/gridpoints/BOU/54,74/forecast/hourly
-precip_url = "https://api.open-meteo.com/v1/forecast?latitude=40.0073&longitude=-105.2660&current=precipitation"
-weather_url = "https://sundowner.colorado.edu/weather/atoc1/"
-bcycle_url = "https://gbfs.bcycle.com/bcycle_boulder/"
-
-#setting up discord webhook
+# --- Configuration ---
 load_dotenv('.env')
-webhook_url = os.getenv('ERROR_WEBHOOK')
+WEBHOOK_URL = os.getenv('ERROR_WEBHOOK')
 
-# set as object to trick pandas to preserve datatype
-log_df = pd.DataFrame({
-    'station_id':pd.Series([], dtype = 'object'), 
-    # 'name':pd.Series([], dtype = 'object'), 
-    # 'lon':pd.Series([], dtype = 'object'), 
-    # 'lat':pd.Series([], dtype = 'object'),  
-    # 'num_docks_available':pd.Series([], dtype = 'object'),  
-    'num_bikes_available':pd.Series([], dtype = 'object'),  
-    'temp':pd.Series([], dtype = 'object'),  
-    'wind_speed':pd.Series([], dtype = 'object'),  
-    'campus_rain':pd.Series([], dtype = 'object'),
-    'precipitation': pd.Series([], dtype = 'object'),
-    'dttime':pd.Series([], dtype = 'object'),
-})
-#station_array = np.array([0, 14, 19, 29, 34, 35, 37, 40, 42, 44, 47, 52, 53])
-station_array = np.array([[0, 14, 19, 29, 35, 40, 44, 52, 53, 60, 59, 15, 9],
-    ["bcycle_boulder_1855", "bcycle_boulder_2132", "bcycle_boulder_2756", "bcycle_boulder_2767", "bcycle_boulder_3318", "bcycle_boulder_3894", "bcycle_boulder_4657", "bcycle_boulder_7393", "bcycle_boulder_7785", "bcycle_boulder_8892", "bcycle_boulder_8889","bcycle_boulder_2144", "bcycle_boulder_1872"]], dtype=object)
+# Paths & URLs
+# Using your exact absolute path - vital for cronjobs to find the DB
+DB_PATH = '/usr/src/app/data/bike_logs.db' 
 
-request_names = ['station_information', 'station_status']
+BCYCLE_URL_BASE = "https://gbfs.bcycle.com/bcycle_boulder/"
+WEATHER_URL = "https://sundowner.colorado.edu/weather/atoc1/"
+PRECIP_URL = "https://api.open-meteo.com/v1/forecast?latitude=40.0073&longitude=-105.2660&current=precipitation"
 
-# gets the bycle json based on the request name
-# and verifies the respose code status
-def get_bcycle_json(name):
-    url = f"{bcycle_url}{name}"
-    response = requests.get(url)
+# The 7 stations from your original array
+TARGET_STATION_IDS = [
+    "bcycle_boulder_1855", "bcycle_boulder_2132", "bcycle_boulder_2756", 
+    "bcycle_boulder_2767", "bcycle_boulder_3318", "bcycle_boulder_2144", 
+    "bcycle_boulder_1872"
+]
 
-    if response.status_code == 200:
-        bcycle_data = response.json()
-        return bcycle_data
-    else:
-        print(f"Failed to retrive data {response.status_code}")
-        logger.error(response.status_code)
-        data = {
-        "content": "get_bcycle_json() failed",
-        "username": str(response.status_code),
-        }
-        discord_result = requests.post(webhook_url, json=data)
-        if 200 <= discord_result.status_code < 300:
-            print(f"Webhook sent {discord_result.status_code}")
-        else:
-            print(f"Not sent with {discord_result.status_code}, response:\n{discord_result.json()}")
+# Configure logging to show timestamps
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def send_discord_alert(message, status_code):
+    """Sends an error message to Discord."""
+    if not WEBHOOK_URL:
+        logging.warning(f"Error ({status_code}): {message} (No Webhook configured)")
+        return
 
-# this function parse the station info json 
-# only returns the chosen info columns as df
-def parse_info(df):
-    bcycle_json = get_bcycle_json(request_names[0])
-    if bcycle_json:
-        for i in range(len(station_array[0])):
-            # if 'station_id' == df.columns[0]:
-            if bcycle_json["data"]["stations"][station_array[0][i]]['station_id'] == station_array[1][i]:
-                df.at[i, df.columns[0]] = bcycle_json["data"]["stations"][station_array[0][i]]['station_id']
-            else:
-                print(f"Failed to retrive data for {station_array[1][i]} at index {station_array[0][i]}")
-                logger.error(station_array[1][i])
+    data = {
+        "content": f"Script Error: {message}",
+        "username": f"Error Bot {status_code}",
+    }
+    try:
+        requests.post(WEBHOOK_URL, json=data, timeout=10)
+    except Exception as e:
+        logging.error(f"Failed to send Discord alert: {e}")
 
-# this function parse the station status json 
-# only returns the chosen status columns as df
-def parse_status(df):
-    bcycle_json = get_bcycle_json(request_names[1])
-    if bcycle_json:
-        for i in range(len(station_array[0])):
-            if bcycle_json["data"]["stations"][station_array[0][i]]['station_id'] == station_array[1][i]:
-                df.at[i, df.columns[1]] = bcycle_json["data"]["stations"][station_array[0][i]]['num_bikes_available']
-            else:
-                print(f"Failed to retrive data for {station_array[1][i]} at index {station_array[0][i]}")
-                logger.error(station_array[1][i])
-            # if status_columns[1] == df.columns[2]:
-            #     df.at[i, df.columns[2]] = bcycle_json["data"]["stations"][station_array[i]][status_columns[1]]
+def get_bcycle_data():
+    """Fetches B-Cycle data and returns a DataFrame of target stations."""
+    try:
+        # 1. Get Static Info (IDs)
+        info_resp = requests.get(f"{BCYCLE_URL_BASE}station_information")
+        if info_resp.status_code != 200:
+            send_discord_alert("B-Cycle Info Failed", info_resp.status_code)
+            return pd.DataFrame()
+            
+        info_df = pd.DataFrame(info_resp.json()['data']['stations'])
+        
+        # 2. Get Live Status (Bikes available)
+        status_resp = requests.get(f"{BCYCLE_URL_BASE}station_status")
+        if status_resp.status_code != 200:
+            send_discord_alert("B-Cycle Status Failed", status_resp.status_code)
+            return pd.DataFrame()
+            
+        status_df = pd.DataFrame(status_resp.json()['data']['stations'])
 
-# parses throught the scraped table as a dataframe
-# and verifies the respose code status
-def get_weather_table(index):
-    url = weather_url
-    response = requests.get(url)
+        # 3. Merge securely on station_id
+        full_df = pd.merge(info_df[['station_id']], 
+                           status_df[['station_id', 'num_bikes_available']], 
+                           on='station_id')
+        
+        # 4. Filter for only the stations we want
+        target_df = full_df[full_df['station_id'].isin(TARGET_STATION_IDS)].copy()
+        target_df.reset_index(drop=True, inplace=True)
+        return target_df
 
-    if response.status_code == 200:
+    except Exception as e:
+        logging.error(f"B-Cycle logic failed: {e}")
+        return pd.DataFrame()
+
+def get_weather_values():
+    """Scrapes the CU weather table using your original read_html logic."""
+    try:
+        response = requests.get(WEATHER_URL)
+        if response.status_code != 200:
+            send_discord_alert("Weather Page Failed", response.status_code)
+            return {'temp': np.nan, 'wind_speed': np.nan, 'campus_rain': np.nan}
+
+        # Original scraping logic preserved
         content = response.content
-        df = pd.read_html(content)[index]
-        return df
-    else:
-        print(f"Failed to retrive data {response.status_code}")
-        logger.error(response.status_code)
-        data = {
-        "content": "get_weather_table() failed",
-        "username": str(response.status_code),
+        scrape_df = pd.read_html(content)[0]
+        
+        # Grab column 1 (data values) and specific rows as per your original array
+        target_col_name = scrape_df.columns[1]
+        
+        return {
+            'temp': scrape_df[target_col_name][0],       # Row 0
+            'wind_speed': scrape_df[target_col_name][5], # Row 5
+            'campus_rain': scrape_df[target_col_name][8] # Row 8
         }
-        discord_result = requests.post(webhook_url, json=data)
-        if 200 <= discord_result.status_code < 300:
-            print(f"Webhook sent {discord_result.status_code}")
-        else:
-            print(f"Not sent with {discord_result.status_code}, response:\n{discord_result.json()}")
+    except Exception as e:
+        logging.error(f"Weather parsing failed: {e}")
+        return {'temp': np.nan, 'wind_speed': np.nan, 'campus_rain': np.nan}
 
-weather_array = np.array([[0,5,8],
-                         ['temp', 'wind_speed', 'campus_rain']], dtype = object)
+def get_precipitation():
+    """Fetches precipitation from Open-Meteo."""
+    try:
+        response = requests.get(PRECIP_URL)
+        if response.status_code != 200:
+            send_discord_alert("Precip API Failed", response.status_code)
+            return np.nan
+            
+        data = response.json()
+        return data["current"]["precipitation"]
+    except Exception as e:
+        logging.error(f"Precipitation logic failed: {e}")
+        return np.nan
 
-# this function takes in the weather table as dataframe
-# adds the parsed temp, wind and rain to the dataframe
-def parse_weather(df):
-    scrape_df = get_weather_table(0)
-    if not scrape_df.empty:
-        columns = scrape_df.columns[1]
-        for i in range(len(station_array[0])):
-            if weather_array[1][0] == df.columns[2]:
-                df.at[i, df.columns[2]] = scrape_df[columns][weather_array[0][0]]
-            if weather_array[1][1] == df.columns[3]:
-                df.at[i, df.columns[3]] = scrape_df[columns][weather_array[0][1]]
-            if weather_array[1][2] == df.columns[4]:
-                df.at[i, df.columns[4]] = scrape_df[columns][weather_array[0][2]]
+def save_to_database(df):
+    """Saves the dataframe to SQLite using your original logic."""
+    conn = None
+    try:
+        # Check if directory exists (Crucial for cronjobs)
+        db_dir = os.path.dirname(DB_PATH)
+        if not os.path.exists(db_dir):
+            logging.warning(f"Directory {db_dir} does not exist. Creating it.")
+            os.makedirs(db_dir, exist_ok=True)
 
-def get_precip_json():
-    url = f"{precip_url}"
-    response = requests.get(url)
+        conn = sqlite3.connect(DB_PATH)
+        
+        # Use your original to_sql logic
+        df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
+        logging.info(f"Successfully logged {len(df)} rows to {DB_PATH}")
+        
+    except Exception as e:
+        logging.error(f"Database write failed: {e}")
+        send_discord_alert("Database Write Failed", 500)
+    finally:
+        if conn:
+            conn.close()
 
-    if response.status_code == 200:
-        precip_data = response.json()
-        return precip_data
-    else:
-        print(f"Failed to retrive data {response.status_code}")
-        logger.debugf("Failed to retrive data {statusCode}", statusCode=response.status_code)
-        data = {
-        "content": "get_precip_json() failed",
-        "username": str(response.status_code),
-        }
-        discord_result = requests.post(webhook_url, json=data)
-        if 200 <= discord_result.status_code < 300:
-            print(f"Webhook sent {discord_result.status_code}")
-        else:
-            print(f"Not sent with {discord_result.status_code}, response:\n{discord_result.json()}")
+def main():
+    # 1. Build the base dataframe from B-Cycle data
+    df = get_bcycle_data()
+    
+    if df.empty:
+        logging.warning("No B-Cycle data found. Skipping run.")
+        return
 
-def parse_precip(df):
-    precip_json = get_precip_json()
-    if precip_json:
-        for i in range(len(station_array[0])):
-            df.at[i, df.columns[5]] = precip_json["current"]["precipitation"]
+    # 2. Fetch environmental data ONCE
+    weather_data = get_weather_values()
+    precip_value = get_precipitation()
+    current_time = dt.datetime.now()
 
-# this function gets the current datetime 
-# and adds date and time to the dataframe
-def parse_datetime(df):
-    now = dt.datetime.now()
-    for i in range(len(station_array[0])):
-        df.at[i, df.columns[6]] = now
+    # 3. Apply values to all rows
+    df['temp'] = weather_data['temp']
+    df['wind_speed'] = weather_data['wind_speed']
+    df['campus_rain'] = weather_data['campus_rain']
+    df['precipitation'] = precip_value
+    df['dttime'] = current_time
 
-def log_data(df):
-    parse_weather(df)
-    parse_info(df)
-    parse_status(df)
-    parse_datetime(df)
-    parse_precip(df)
-    # conn = sqlite3.connect('/usr/src/app/data/bike_logs.db')
-    # df.to_sql(name='bike_logs', con=conn, if_exists='append', index=False)
+    # 4. Reorder columns to match your original schema exactly
+    # Original: station_id, num_bikes_available, temp, wind_speed, campus_rain, precipitation, dttime
+    final_cols = ['station_id', 'num_bikes_available', 'temp', 'wind_speed', 'campus_rain', 'precipitation', 'dttime']
+    
+    # Ensure all columns exist (in case of partial API failure)
+    for col in final_cols:
+        if col not in df.columns:
+            df[col] = np.nan
+
+    df_final = df[final_cols]
+    
+    # 5. Print to logs/stdout (useful for cron logs)
+    print(df_final.head())
+
+    # 6. Save to SQLite
+    save_to_database(df_final)
 
 if __name__ == '__main__':
-    
-    log_data(log_df)
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
-    #print(df.dtypes)
-    # parse_json()
-    # print(df.head(5))
+    main()
