@@ -79,8 +79,29 @@ def calculate_pickups(df_in):
     df['difference'] = df['prev_bikes'] - df['num_bikes_available']
 
     df['pickups'] = df['difference'].clip(lower=0).fillna(0).astype(int)
+    df['pickups'] = df.groupby('station_id')['pickups'].shift(1).fillna(0)
 
     df = df.drop(columns=['prev_bikes', 'difference'])
+    return df
+
+def calculate_semester(df_in):
+    df = df_in.copy()
+
+    start = '08:00'
+    end = '20:00'
+
+    df = df.set_index('date_time')
+
+    busy_mask = pd.Series(False, index=df.index)
+    school_day = df['day_of_week'].isin(['Monday','Tuesday', 'Wednesday',  'Thursday', 'Friday'])
+    # time_str = df.index.strftime('%H:%M')
+
+    school_hours = df.index.isin(df.between_time(start, end).index)
+
+    busy_mask = (school_day & school_hours)
+
+    df['is_semester'] = busy_mask.astype(int)
+    df = df.reset_index()
     return df
 
 def calculate_dropoffs(df_in):
@@ -95,20 +116,10 @@ def calculate_dropoffs(df_in):
     df['difference'] =  df['num_bikes_available'] - df['prev_bikes']
 
     df['dropoffs'] = df['difference'].clip(lower=0).fillna(0).astype(int)
+    df['dropoffs'] = df.groupby('station_id')['dropoffs'].shift(1).fillna(0)
 
     df = df.drop(columns=['prev_bikes', 'difference'])
     return df
-
-def calculate_avaliablity(df_in):
-    df = df_in.copy()
-
-    df['num_bikes_available'] = pd.to_numeric(df['num_bikes_available'])
-
-    df = df.sort_values(by=['station_id', 'date_time'])
-
-    df['num_bikes_available_mean'] = pd.mean(df['num_bikes_available'])
-    df['num_bikes_available_min']
-
 
 def calculate_precipitation(df_in):
     df = df_in.copy()
@@ -154,7 +165,6 @@ def group_by_hour(df_in):
         is_release =('is_release', 'max'), 
         is_precipitation =('is_precipitation', 'max'),
         is_holiday = ('is_holiday', 'max'), 
-        day_of_week = ('day_of_week', 'first'), 
         temp = ('temp', 'mean'),
         wind_speed = ('wind_speed', 'mean')
     )
@@ -165,50 +175,19 @@ def group_by_hour(df_in):
 def resample_to_five_min(df_in):
     df = df_in.copy()
     
-    # aggregation_rules = {
-    #     'station_id': 'first',
-    #     'day_of_week': 'first',
-
-    #     'pickups': 'sum', 
-
-    #     'num_bikes_available': ['mean', 'min'], 
-
-    #     'campus_rain': 'last', 
-    #     'precipitation': 'last',
-    #     'temp': 'last', 
-
-    #     'wind_speed': 'mean', 
-    #     'is_release': 'max',  
-    #     'is_holiday': 'max'
-    # }
-    
     df_5min = df.groupby(['station_id', pd.Grouper(key="date_time", freq="5min")]).agg(
         station_id = ('station_id', 'first'),
         pickups = ('pickups', 'sum'),
-        dropoffs = ('dropoffs', 'sum')
+        dropoffs = ('dropoffs', 'sum'),
         is_release =('is_release', 'max'), 
         precipitation =('precipitation', 'max'),
         campus_rain =('campus_rain', 'max'),
         bikes_avaliable_min = ('num_bikes_available', 'min'),
-        bikes_avaliable_mean = ('num_bikes_available', 'mean'),
         is_holiday = ('is_holiday', 'max'), 
-        day_of_week = ('day_of_week', 'first'), 
         temp = ('temp', 'mean'),
-        wind_speed = ('wind_speed', 'mean')
+        wind_speed = ('wind_speed', 'mean'),
+        is_semester = ('is_semester', 'max')
     )
-    # new_cols = [
-    #     col[0] if col[1] in ['first', 'last']  
-    #     else f"{col[0]}_{col[1]}"               
-    #     for col in df_5min.columns.values
-    # ]
-
-    # df_5min = df_5min.rename(columns={
-    #     'pickups_sum': 'pickups',
-    #     'is_release_max': 'is_release',
-    #     'is_holiday_max': 'is_holiday',
-    # })
-
-    # df_5min.columns = new_cols
     
     if 'station_id' in df_5min.columns:
         df_5min = df_5min.drop(columns=['station_id'])
@@ -228,6 +207,7 @@ def main():
         .pipe(calculate_pickups) 
         .pipe(calculate_holiday)
         .pipe(calculate_dropoffs)
+        .pipe(calculate_semester)
     )
 
 
@@ -238,12 +218,12 @@ def main():
     df_hourly = group_by_hour(df_processed)
 
     print("\n--- 5-minute ---")
-    print(df_processed.tail(50))
+    print(df_processed.head(50))
     
     print("\n--- Hourly  ---")
     print(df_hourly.head(20))
 
-    with sqlite3.connect('../../data/db/bikeLogs_Month.db') as conn:
+    with sqlite3.connect('../../data/db/bikeLogs_dropoff.db') as conn:
         df_processed.to_sql('bike_logs', con=conn, if_exists='replace', index=False)
 
 if __name__ == '__main__':
